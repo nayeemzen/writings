@@ -321,10 +321,24 @@ td:last-child, th:last-child { text-align: right; }
   .key-points li { padding-left: 2.2rem; }
 }
 
-@page { margin: 18mm 16mm 18mm; }
+@page { margin: 18mm 16mm 18mm; background: #0b0d11; }
 @page:first { margin: 0; }
 
 @media print {
+  /* Chromium doesn't paint the document background into @page margin boxes,
+     so we add a fixed full-page backdrop to avoid white borders. */
+  body::before {
+    content: '';
+    position: fixed;
+    top: -18mm;
+    right: -16mm;
+    bottom: -18mm;
+    left: -16mm;
+    background: var(--bg);
+    z-index: 0;
+  }
+  .cover, .book { position: relative; z-index: 1; }
+
   .cover { page-break-after: always; }
   .chapter { page-break-before: always; padding-top: 0; }
 
