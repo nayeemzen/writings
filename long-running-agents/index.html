@@ -1,0 +1,2388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Long-Running Agents Playbook (v8)</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<style>
+:root {
+  --bg: #0c0e12;
+  --bg-surface: #12151b;
+  --bg-surface-2: #181c24;
+  --bg-surface-3: #1e2330;
+  --text: #e2e4e9;
+  --text-muted: #8b8fa3;
+  --text-dim: #5c6078;
+  --accent: #4af0c0;
+  --accent-dim: rgba(74, 240, 192, 0.12);
+  --accent-glow: rgba(74, 240, 192, 0.06);
+  --amber: #f0b84a;
+  --amber-dim: rgba(240, 184, 74, 0.12);
+  --rose: #f06478;
+  --rose-dim: rgba(240, 100, 120, 0.12);
+  --blue: #4a9cf0;
+  --blue-dim: rgba(74, 156, 240, 0.12);
+  --violet: #9b6ef0;
+  --violet-dim: rgba(155, 110, 240, 0.12);
+  --border: rgba(255,255,255,0.06);
+  --border-accent: rgba(74, 240, 192, 0.2);
+  --font-display: 'Instrument Serif', Georgia, serif;
+  --font-body: 'DM Sans', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --max-w: 760px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+::selection {
+  background: rgba(74, 240, 192, 0.25);
+  color: #fff;
+}
+
+html { scroll-behavior: smooth; font-size: 16px; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.72;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* ── COVER ── */
+.cover {
+  min-height: 100vh;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: 4rem 2rem; position: relative; overflow: hidden;
+}
+.cover::before {
+  content: ''; position: absolute; inset: 0;
+  background: none;
+  pointer-events: none;
+}
+.cover-grid {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.02) 1px, transparent 1px);
+  background-size: 60px 60px;
+  pointer-events: none;
+}
+.cover-label {
+  font-family: var(--font-mono); font-size: .7rem; letter-spacing: .2em;
+  text-transform: uppercase; color: var(--accent); margin-bottom: 2rem;
+  position: relative; z-index: 1;
+  opacity: 0; animation: fadeUp .8s ease forwards; animation-delay: .2s;
+}
+.cover h1 {
+  font-family: var(--font-display); font-size: clamp(3rem,7vw,5.5rem);
+  font-weight: 400; line-height: 1.08; letter-spacing: -.02em; color: #fff;
+  max-width: 700px; position: relative; z-index: 1;
+  opacity: 0; animation: fadeUp .8s ease forwards; animation-delay: .4s;
+}
+.cover h1 em { font-style: italic; color: var(--accent); }
+.cover-sub {
+  font-family: var(--font-mono); font-size: .95rem; line-height: 1.65;
+  letter-spacing: .12em; text-transform: uppercase;
+  color: rgba(226, 228, 233, 0.72);
+  max-width: 640px; text-wrap: balance;
+  margin-top: 1.75rem; position: relative; z-index: 1;
+  opacity: 0; animation: fadeUp .8s ease forwards; animation-delay: .6s;
+}
+@supports (-webkit-background-clip: text) {
+  .cover-sub {
+    background: linear-gradient(90deg,
+      rgba(226, 228, 233, 0.86),
+      rgba(74, 156, 240, 0.92),
+      rgba(155, 110, 240, 0.92)
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+}
+.cover-meta {
+  font-family: var(--font-mono); font-size: .72rem; color: var(--text-dim);
+  margin-top: 3rem; position: relative; z-index: 1;
+  opacity: 0; animation: fadeUp .8s ease forwards; animation-delay: .8s;
+}
+.cover-meta a { color: var(--text-muted); border-bottom-color: rgba(255,255,255,.14); }
+.cover-meta a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+.cover-author { display: inline-block; }
+.cover-date { display: block; margin-top: .55rem; }
+.cover-download { text-decoration: underline; text-underline-offset: 3px; border-bottom: none; }
+.cover-download:hover { text-decoration-color: var(--accent); }
+.cover-scroll {
+  position: absolute; bottom: 2.5rem; left: 50%; transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: .5rem;
+  color: var(--text-dim); font-family: var(--font-mono); font-size: .6rem;
+  letter-spacing: .15em; text-transform: uppercase;
+  opacity: 0; animation: fadeUp .8s ease forwards; animation-delay: 1.2s;
+}
+.cover-scroll .arrow {
+  width: 1px; height: 24px;
+  background: linear-gradient(to bottom, var(--accent), transparent);
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulse {
+  0%, 100% { opacity: .3; }
+  50% { opacity: 1; }
+}
+
+/* ── ILLUSTRATIONS ── */
+.illustration { width: 100%; max-width: 600px; margin: 2.5rem auto; display: block; }
+.illustration-wide { max-width: 700px; }
+
+/* ── MEDIA ── */
+figure.media {
+  margin: 2rem 0; padding: 1.1rem 1.15rem;
+  background: var(--bg-surface); border: 1px solid var(--border);
+  border-radius: 14px;
+}
+figure.media img {
+  width: 100%; height: auto; display: block;
+  border-radius: 10px; border: 1px solid rgba(255,255,255,0.04);
+}
+figure.media figcaption {
+  margin-top: .85rem;
+  color: var(--text-muted);
+  font-size: .85rem;
+  line-height: 1.55;
+}
+figure.media figcaption a { border-bottom-color: rgba(74,240,192,.18); }
+
+/* ── LAYOUT ── */
+.book { max-width: var(--max-w); margin: 0 auto; padding: 0 1.5rem 6rem; }
+
+/* ── CHAPTERS ── */
+.chapter { padding-top: 6rem; margin-bottom: 3rem; position: relative; }
+.chapter-num {
+  font-family: var(--font-mono); font-size: .65rem; letter-spacing: .25em;
+  text-transform: uppercase; color: var(--accent); margin-bottom: .75rem; display: block;
+}
+.chapter h2 {
+  font-family: var(--font-display); font-size: clamp(2rem,5vw,3rem);
+  font-weight: 400; line-height: 1.15; letter-spacing: -.01em; color: #fff;
+}
+.chapter-line { width: 40px; height: 2px; background: var(--accent); margin-top: 1.5rem; border-radius: 1px; }
+
+/* ── HEADINGS ── */
+h3 {
+  font-family: var(--font-display); font-size: 1.55rem; font-weight: 400;
+  color: #fff; margin-top: 3rem; margin-bottom: 1rem; line-height: 1.3;
+}
+h4 {
+  font-family: var(--font-body); font-size: 1rem; font-weight: 600;
+  color: var(--text); margin-top: 2rem; margin-bottom: .75rem; letter-spacing: .01em;
+}
+
+/* ── PROSE ── */
+p { margin-bottom: 1.25rem; color: var(--text); font-size: 1rem; }
+p + p { margin-top: 0; }
+strong { color: #fff; font-weight: 600; }
+a { color: var(--accent); text-decoration: none; border-bottom: 1px solid rgba(74,240,192,.25); transition: border-color .2s; }
+a:hover { border-color: var(--accent); }
+
+/* ── CALLOUTS ── */
+.callout {
+  margin: 2.5rem 0; padding: 1.5rem 1.75rem;
+  border-left: 3px solid var(--accent); background: var(--accent-glow);
+  border-radius: 0 12px 12px 0; font-size: 1.05rem; line-height: 1.65;
+}
+.callout.warning { border-left-color: var(--amber); background: rgba(240,184,74,.04); }
+.callout.danger { border-left-color: var(--rose); background: rgba(240,100,120,.04); }
+.callout p:last-child { margin-bottom: 0; }
+
+blockquote {
+  margin: 2rem 0; padding: 1.25rem 1.5rem;
+  border-left: 2px solid var(--text-dim); color: var(--text-muted);
+  font-style: italic; font-size: .95rem;
+}
+blockquote cite { display: block; margin-top: .5rem; font-style: normal; font-size: .8rem; color: var(--text-dim); }
+
+/* ── KEY POINTS ── */
+.key-points {
+  margin: 2.5rem 0; padding: 2rem;
+  background: var(--bg-surface); border: 1px solid var(--border);
+  border-radius: 16px; position: relative; overflow: hidden;
+}
+.key-points::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--blue), var(--violet));
+}
+.key-points-title {
+  font-family: var(--font-mono); font-size: .68rem; letter-spacing: .2em;
+  text-transform: uppercase; color: var(--accent); margin-bottom: 1.25rem;
+}
+.key-points ol { list-style: none; counter-reset: kp; }
+.key-points li {
+  counter-increment: kp; padding: .6rem 0 .6rem 2.5rem;
+  position: relative; border-bottom: 1px solid var(--border);
+  font-size: .95rem; line-height: 1.6;
+}
+.key-points li:last-child { border-bottom: none; }
+.key-points li::before {
+  content: counter(kp); position: absolute; left: 0; top: .6rem;
+  width: 1.7rem; height: 1.7rem; display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-size: .7rem; font-weight: 600;
+  color: var(--accent); background: var(--accent-dim); border-radius: 8px;
+}
+
+/* ── LISTS ── */
+ul, ol { margin: 1rem 0 1.5rem; padding-left: 1.75rem; }
+li { margin-bottom: .4rem; font-size: .95rem; color: var(--text); }
+li::marker { color: var(--text-dim); }
+
+/* ── CODE ── */
+code {
+  font-family: var(--font-mono); font-size: .82em;
+  background: var(--bg-surface-2); color: var(--accent);
+  padding: .15em .45em; border-radius: 5px; border: 1px solid var(--border);
+}
+pre {
+  margin: 1.5rem 0 2rem; padding: 1.25rem 1.5rem;
+  background: var(--bg-surface); border: 1px solid var(--border);
+  border-radius: 12px; overflow-x: auto; font-size: .82rem; line-height: 1.7;
+  position: relative;
+}
+pre code { background: none; border: none; padding: 0; color: var(--text); font-size: inherit; }
+pre .comment { color: var(--text-dim); }
+pre .keyword { color: var(--violet); }
+pre .string { color: var(--accent); }
+
+/* ── TABLES ── */
+.table-wrap {
+  margin: 1.5rem 0 2rem; overflow-x: auto;
+  border-radius: 12px; border: 1px solid var(--border);
+}
+table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+th {
+  background: var(--bg-surface-2); font-family: var(--font-mono);
+  font-size: .7rem; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--text-muted); font-weight: 500; text-align: left;
+  padding: .85rem 1rem; border-bottom: 1px solid var(--border);
+}
+td { padding: .75rem 1rem; border-bottom: 1px solid var(--border); color: var(--text); }
+tr:last-child td { border-bottom: none; }
+td:last-child, th:last-child { text-align: right; }
+.highlight-row td { background: var(--accent-glow); color: #fff; font-weight: 500; }
+
+/* ── TAGS ── */
+.tag {
+  display: inline-block; font-family: var(--font-mono); font-size: .65rem;
+  letter-spacing: .06em; padding: .2em .65em; border-radius: 6px; font-weight: 500;
+}
+.tag-green { background: var(--accent-dim); color: var(--accent); }
+.tag-amber { background: var(--amber-dim); color: var(--amber); }
+.tag-rose { background: var(--rose-dim); color: var(--rose); }
+.tag-blue { background: var(--blue-dim); color: var(--blue); }
+.tag-violet { background: var(--violet-dim); color: var(--violet); }
+
+/* ── DIAGNOSIS ── */
+.diagnosis {
+  margin: 1.75rem 0; border-radius: 12px;
+  border: 1px solid var(--border); overflow: hidden;
+}
+.diagnosis-header {
+  display: flex; align-items: center; gap: .6rem;
+  padding: .85rem 1.25rem; background: var(--bg-surface-2);
+  font-weight: 600; font-size: .92rem; color: #fff;
+}
+.diagnosis-body { padding: 1.25rem; }
+.diagnosis-section { margin-bottom: 1rem; }
+.diagnosis-section:last-child { margin-bottom: 0; }
+.diagnosis-label {
+  font-family: var(--font-mono); font-size: .65rem;
+  letter-spacing: .15em; text-transform: uppercase; margin-bottom: .4rem;
+}
+.diagnosis-label.symptom { color: var(--rose); }
+.diagnosis-label.fix { color: var(--accent); }
+
+/* ── FLOW ── */
+.flow {
+  display: flex; align-items: center; gap: 0; margin: 2rem 0;
+  flex-wrap: wrap; justify-content: center;
+}
+.flow-step {
+  padding: .65rem 1.1rem; background: var(--bg-surface);
+  border: 1px solid var(--border); border-radius: 10px;
+  font-family: var(--font-mono); font-size: .75rem;
+  color: var(--text); text-align: center; white-space: nowrap;
+}
+.flow-arrow { color: var(--text-dim); font-size: 1.2rem; padding: 0 .3rem; }
+
+/* ── TOC ── */
+.toc {
+  margin: 3rem 0; padding: 2.5rem;
+  background: var(--bg-surface); border: 1px solid var(--border); border-radius: 16px;
+}
+.toc-title { font-family: var(--font-display); font-size: 1.6rem; color: #fff; margin-bottom: 1.5rem; }
+.toc-list { list-style: none; padding: 0; columns: 2; column-gap: 2rem; }
+.toc-list li { padding: .4rem 0; border-bottom: 1px solid var(--border); break-inside: avoid; }
+.toc-list a { color: var(--text-muted); font-size: .88rem; border: none; transition: color .2s; }
+.toc-list a:hover { color: var(--accent); }
+.toc-list .toc-num { font-family: var(--font-mono); font-size: .7rem; color: var(--text-dim); margin-right: .5rem; }
+
+/* ── SEPARATOR ── */
+.sep { width: 100%; height: 1px; background: linear-gradient(90deg, transparent, var(--border-accent), transparent); margin: 4rem 0; }
+
+/* ── GLOSSARY ── */
+.glossary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.5rem 0; }
+.glossary-item {
+  padding: 1rem 1.25rem; background: var(--bg-surface);
+  border: 1px solid var(--border); border-radius: 10px;
+}
+.glossary-term { font-family: var(--font-mono); font-size: .82rem; color: var(--accent); font-weight: 500; margin-bottom: .3rem; }
+.glossary-def { font-size: .85rem; color: var(--text-muted); line-height: 1.55; }
+
+/* ── FOOTER ── */
+.footer { text-align: center; padding: 4rem 2rem 3rem; color: var(--text-dim); font-size: .8rem; }
+.footer-line { width: 40px; height: 2px; background: var(--accent); margin: 0 auto 1.5rem; border-radius: 1px; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 640px) {
+  .toc-list { columns: 1; }
+  .glossary-grid { grid-template-columns: 1fr; }
+  .flow { gap: .25rem; }
+  .flow-step { font-size: .65rem; padding: .5rem .7rem; }
+  pre { font-size: .75rem; padding: 1rem; }
+  .key-points li { padding-left: 2.2rem; }
+}
+
+/* Set a page background so Chrome doesn't render white margin boxes in the PDF. */
+@page { margin: 18mm 16mm 18mm; background: #0c0e12; }
+@page:first { margin: 0; }
+
+@media print {
+  .cover { page-break-after: always; }
+  .chapter {
+    break-before: auto;
+    page-break-before: auto;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    padding-top: 0;
+    margin: 2.75rem 0 1.75rem;
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+  .chapter-num { break-after: avoid; page-break-after: avoid; }
+  .chapter h2 { break-before: avoid; page-break-before: avoid; }
+  .chapter-line { break-before: avoid; page-break-before: avoid; }
+
+  /* Page margins provide the per-page safe area; remove extra layout padding. */
+  .book { padding: 0; }
+
+  /* Hide scroll indicator (interactive-only) */
+  .cover-scroll { display: none; }
+
+  /* Separators can orphan into their own blank pages next to forced chapter breaks. */
+  .sep { display: none; }
+
+  /* TOC: strip containment since it spans a full page */
+  .toc {
+    border: none; border-radius: 0; overflow: visible;
+    background: transparent;
+    margin: 0 0 2rem;
+    padding: 0;
+    break-before: page;
+    page-break-before: always;
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+  .toc-title { break-after: avoid; page-break-after: avoid; margin-bottom: 1rem; }
+  .toc-tree { break-before: avoid; page-break-before: avoid; }
+
+  /* ── GENERAL PAGE BREAK RULES ──
+     1. Headings must never be orphaned from their content.
+     2. Compact blocks (cards, tables, code) should not split.
+     3. Paragraphs get widow/orphan protection. */
+  h2, h3, h4 { break-after: avoid; }
+  p { orphans: 3; widows: 3; }
+
+  .diagnosis, .key-points, .callout, .table-wrap, pre, .illustration, .flow, figure.media {
+    page-break-inside: avoid;
+  }
+
+  /* Short version: keep the loop diagram with its key-points card. */
+  #the-short-version .illustration {
+    margin: 1.25rem auto 1.5rem;
+    max-width: 620px;
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+  #the-short-version .key-points { margin: 1.25rem 0 0; padding: 1.5rem; }
+  #the-short-version .key-points-title { margin-bottom: 1rem; }
+  #the-short-version .key-points li { padding: .5rem 0 .5rem 2.3rem; font-size: .92rem; line-height: 1.55; }
+  #the-short-version .key-points li::before { top: .5rem; width: 1.6rem; height: 1.6rem; }
+}
+
+/* ── TOC (nested) ── */
+.toc-tree ul { list-style: none; padding-left: 0; margin: 0; }
+.toc-tree > ul { columns: 2; column-gap: 2rem; }
+.toc-tree > ul > li { break-inside: avoid; padding: .4rem 0; border-bottom: 1px solid var(--border); }
+.toc-tree li ul { columns: 1; margin-top: .5rem; padding-left: 1.25rem; }
+.toc-tree a { color: var(--text-muted); font-size: .88rem; border: none; transition: color .2s; }
+.toc-tree a:hover { color: var(--accent); }
+.toc-tree li li { border: none; padding: .2rem 0; }
+
+/* ── PART HEADERS ── */
+.part { padding-top: 6rem; margin-bottom: 2rem; }
+.part .chapter-num { color: var(--text-dim); }
+
+/* ── HIGHLIGHT.JS ── */
+pre code.hljs { display: block; }
+pre code.hljs {
+  background: transparent !important;
+  padding: 0 !important;
+  color: var(--text);
+}
+.hljs-comment { color: var(--text-dim); }
+.hljs-quote { color: var(--text-dim); }
+.hljs-keyword, .hljs-selector-tag, .hljs-literal { color: var(--violet); }
+.hljs-string, .hljs-title, .hljs-section, .hljs-attribute, .hljs-symbol, .hljs-bullet { color: var(--accent); }
+.hljs-number, .hljs-meta { color: var(--amber); }
+
+@media print {
+  .part { page-break-before: always; padding-top: 0; }
+  .chapter-first { page-break-before: auto; break-before: auto; }
+}
+
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ COVER ═══════════════ -->
+<section class="cover">
+  <div class="cover-grid"></div>
+  <h1>Long-Running <em>Agents</em></h1>
+  <p class="cover-sub">A practical handbook of principles and lessons for operating autonomous, long-running, self-improving agents on complex tasks.</p>
+  <p class="cover-meta"><span class="cover-author">Nayeem Zen &middot; <a href="https://x.com/nayeemzen">@nayeemzen</a> &middot; <a href="https://www.linkedin.com/in/nayeemzen">linkedin.com/in/nayeemzen</a></span><span class="cover-date">February 2026 &middot; <a class="cover-download" href="playbook.pdf" download>Download PDF</a>.</span></p>
+  <div class="cover-scroll">
+    <span>Scroll</span>
+    <div class="arrow"></div>
+  </div>
+</section>
+
+<div class="book">
+<nav class="toc" id="contents">
+  <div class="toc-title">Contents</div>
+  <div class="toc-tree">
+<ul>
+<li><a href="#the-short-version">The short version</a></li>
+<li><a href="#introduction">Introduction</a>
+<ul>
+<li><a href="#who-this-is-for">Who this is for</a></li>
+<li><a href="#how-to-use-this-playbook">How to use this playbook</a></li>
+<li><a href="#what-a-long-running-agent-is">What is a long-running agent?</a>
+<ul>
+<li><a href="#where-long-running-agents-shine">Where long-running agents shine</a></li>
+<li><a href="#where-they-are-a-bad-fit">Where they are a bad fit</a></li>
+</ul></li>
+</ul></li>
+<li><a href="#stack-and-setup">Stack and setup</a>
+<ul>
+<li><a href="#models">Models</a></li>
+<li><a href="#harnesses-agent-runners">Harnesses (agent runners)</a></li>
+<li><a href="#tracking-the-frontier">Tracking the frontier</a>
+<ul>
+<li><a href="#evals-measure-your-reality">Evals (measure your reality)</a></li>
+</ul></li>
+<li><a href="#cost-management">Cost management</a></li>
+<li><a href="#safety-and-permissions">Safety and permissions</a></li>
+</ul></li>
+<li><a href="#operating-system">Operating system</a>
+<ul>
+<li><a href="#the-three-file-memory-system">The three-file memory system</a></li>
+<li><a href="#skills-mcp-and-cli-tools">Skills, MCP, and CLI tools</a></li>
+<li><a href="#planning">Planning</a></li>
+<li><a href="#templates">Templates</a></li>
+<li><a href="#execution">Execution</a></li>
+<li><a href="#compaction">Compaction</a></li>
+<li><a href="#steering">Steering</a></li>
+<li><a href="#review">Review</a></li>
+<li><a href="#self-evolution">Self-evolution</a></li>
+</ul></li>
+<li><a href="#scaling-up">Scaling up</a>
+<ul>
+<li><a href="#parallel-task-management">Parallel task management</a></li>
+<li><a href="#running-this-in-a-team">Running this in a team</a></li>
+</ul></li>
+<li><a href="#troubleshooting-and-improvement">Troubleshooting and improvement</a>
+<ul>
+<li><a href="#common-failure-modes-and-fixes">Common failure modes (and fixes)</a></li>
+<li><a href="#observability">Observability</a></li>
+</ul></li>
+<li><a href="#conclusion">Conclusion</a></li>
+<li><a href="#glossary">Glossary</a></li>
+<li><a href="#references">References</a></li>
+</ul>
+  </div>
+</nav>
+<div class="sep"></div>
+<section id="the-short-version">
+<svg class="illustration illustration-wide" viewBox="0 0 700 178" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Agent execution loop diagram">
+  <rect width="700" height="178" rx="16" fill="#12151b"/>
+
+  <!-- Loopback path: right of EVOLVE → up → over → down → left of PLAN -->
+  <path d="M660 86 L672 86 Q684 86 684 70 L684 34 Q684 20 672 20 L28 20 Q16 20 16 34 L16 70 Q16 86 28 86 L40 86" stroke="#2a3040" stroke-width="2" stroke-dasharray="6 4" fill="none"/>
+  
+
+  <!-- Connection arrows (4 solid colored arrows between 5 boxes) -->
+  <path d="M140 86 L158 86" stroke="#4af0c0" stroke-width="2"/>
+  <polygon points="155,80 155,92 166,86" fill="#4af0c0" opacity="0.8"/>
+  <path d="M270 86 L288 86" stroke="#4a9cf0" stroke-width="2"/>
+  <polygon points="285,80 285,92 296,86" fill="#4a9cf0" opacity="0.8"/>
+  <path d="M400 86 L418 86" stroke="#f0b84a" stroke-width="2"/>
+  <polygon points="415,80 415,92 426,86" fill="#f0b84a" opacity="0.8"/>
+  <path d="M530 86 L548 86" stroke="#f06478" stroke-width="2"/>
+  <polygon points="545,80 545,92 556,86" fill="#f06478" opacity="0.8"/>
+
+  <!-- Box 1: PLAN — x=40, w=100, center=90 -->
+  <rect x="40" y="54" width="100" height="64" rx="10" fill="#1e2330" stroke="#4af0c0" stroke-width="1.5"/>
+  <text x="90" y="82" text-anchor="middle" fill="#4af0c0" font-family="JetBrains Mono, monospace" font-size="12" letter-spacing="0.1em">PLAN</text>
+  <text x="90" y="101" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="9">plan.md</text>
+
+  <!-- Box 2: BUILD — x=170, w=100, center=220 -->
+  <rect x="170" y="54" width="100" height="64" rx="10" fill="#1e2330" stroke="#4a9cf0" stroke-width="1.5"/>
+  <text x="220" y="82" text-anchor="middle" fill="#4a9cf0" font-family="JetBrains Mono, monospace" font-size="12" letter-spacing="0.1em">BUILD</text>
+  <text x="220" y="101" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="9">checklist.yaml</text>
+
+  <!-- Box 3: VERIFY — x=300, w=100, center=350 -->
+  <rect x="300" y="54" width="100" height="64" rx="10" fill="#1e2330" stroke="#f0b84a" stroke-width="1.5"/>
+  <text x="350" y="82" text-anchor="middle" fill="#f0b84a" font-family="JetBrains Mono, monospace" font-size="12" letter-spacing="0.1em">VERIFY</text>
+  <text x="350" y="101" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="9">build &middot; test &middot; lint</text>
+
+  <!-- Box 4: AUDIT — x=430, w=100, center=480 -->
+  <rect x="430" y="54" width="100" height="64" rx="10" fill="#1e2330" stroke="#f06478" stroke-width="1.5"/>
+  <text x="480" y="82" text-anchor="middle" fill="#f06478" font-family="JetBrains Mono, monospace" font-size="12" letter-spacing="0.1em">AUDIT</text>
+  <text x="480" y="101" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="9">run-log.md</text>
+
+  <!-- Box 5: EVOLVE — x=560, w=100, center=610 -->
+  <rect x="560" y="54" width="100" height="64" rx="10" fill="#1e2330" stroke="#9b6ef0" stroke-width="1.5"/>
+  <text x="610" y="82" text-anchor="middle" fill="#9b6ef0" font-family="JetBrains Mono, monospace" font-size="12" letter-spacing="0.1em">EVOLVE</text>
+  <text x="610" y="101" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="9">skills &amp; evals</text>
+
+  <!-- Bottom labels -->
+  <circle cx="90" cy="136" r="3" fill="#4af0c0" opacity="0.3"/>
+  <circle cx="220" cy="136" r="3" fill="#4a9cf0" opacity="0.3"/>
+  <circle cx="350" cy="136" r="3" fill="#f0b84a" opacity="0.3"/>
+  <circle cx="480" cy="136" r="3" fill="#f06478" opacity="0.3"/>
+  <circle cx="610" cy="136" r="3" fill="#9b6ef0" opacity="0.3"/>
+  <text x="90" y="155" text-anchor="middle" fill="#5c6078" font-family="DM Sans, sans-serif" font-size="8">Constraints</text>
+  <text x="220" y="155" text-anchor="middle" fill="#5c6078" font-family="DM Sans, sans-serif" font-size="8">Checkpoints</text>
+  <text x="350" y="155" text-anchor="middle" fill="#5c6078" font-family="DM Sans, sans-serif" font-size="8">Evidence</text>
+  <text x="480" y="155" text-anchor="middle" fill="#5c6078" font-family="DM Sans, sans-serif" font-size="8">Decisions</text>
+  <text x="610" y="155" text-anchor="middle" fill="#5c6078" font-family="DM Sans, sans-serif" font-size="8">Improvement</text>
+</svg>
+  <div class="key-points">
+    <div class="key-points-title">The Short Version &mdash; If you only remember a few things</div>
+<ol type="1">
+<li><strong>Start with Codex CLI + GPT-5.2 (high/xhigh).</strong> This is the current frontier. Use other stacks when you have a clear reason.</li>
+<li><strong>Make "done" measurable.</strong> Write acceptance criteria the agent can prove with tools, like tests, builds, lint, or queries. The build-verify loop is non-negotiable.</li>
+<li><strong>Keep durable memory outside the chat.</strong> <code>plan.md</code> is the blueprint. <code>checklist.yaml</code> is current status. <code>run-log.md</code> is the audit trail. Your agent should refer to them across compaction and restarts.</li>
+<li><strong>Observability is key.</strong> Durable memory plus audit logs are for async observability and post-mortems; Codex reasoning traces and thinking blocks are real-time observability.</li>
+<li><strong>Steer early.</strong> Drift compounds. Use your observability system to steer the agent. A short correction in the first 10 minutes beats an hour of cleanup.</li>
+<li><strong>Keep the verification loop cheap.</strong> Fast tests often, full suite at milestones, and CI always running in the background, continuously polled by the agent.</li>
+<li><strong>Checkpoint constantly.</strong> Small commits, reversible steps, and separate checkouts for parallel work.</li>
+<li><strong>Review by risk.</strong> Agent-first review, then human review on high blast radius areas.</li>
+<li><strong>Self-evolve after every run.</strong> Extract skills, agent guideline updates (<code>AGENTS.md</code>), and repo evals from <code>run-log.md</code>.</li>
+</ol>
+  </div>
+</section>
+<div class="sep"></div>
+<section class="part" id="introduction">
+  <span class="chapter-num">Section</span>
+  <h2>Introduction</h2>
+  <div class="chapter-line"></div>
+</section>
+
+<section class="chapter chapter-first" id="who-this-is-for">
+  <span class="chapter-num">Chapter 01</span>
+  <h2>Who this is for</h2>
+  <div class="chapter-line"></div>
+</section>
+
+<ul>
+<li>Founders and execs who want more engineering throughput or run their own complex tasks and experimentation in async</li>
+<li>Engineers and tech leads running large refactors, migrations, and platform work</li>
+<li>Platform teams hardening CI, tests, and developer experience</li>
+</ul>
+
+<section class="chapter" id="how-to-use-this-playbook">
+  <span class="chapter-num">Chapter 02</span>
+  <h2>How to use this playbook</h2>
+  <div class="chapter-line"></div>
+</section>
+
+<ol type="1">
+<li>Skim <strong>Stack and setup</strong>, <strong>Operating system</strong>, and <strong>Cost management</strong> so you pick a stack and a workflow.</li>
+<li>Copy the durable memory system templates into your repo.</li>
+<li>Run one small long job first, in a safe environment, with a strict verification loop.</li>
+<li>Only then scale to overnight runs and parallel worktrees.</li>
+<li>After you ship, extract follow-ups from <code>run-log.md</code> into skills, repo evals, and agent guidelines (<code>AGENTS.md</code>).</li>
+</ol>
+
+<section class="chapter" id="what-a-long-running-agent-is">
+  <span class="chapter-num">Chapter 03</span>
+  <h2>What is a long-running agent?</h2>
+  <div class="chapter-line"></div>
+</section>
+
+<p>Long-running agents are coding agents that can run for hours or days with minimal intervention. You hand them a scoped job, a verification loop, and a memory system. They keep working, checkpointing, and producing evidence until your task is <strong>verifiably complete</strong>.</p>
+<p>Cursor has written about how their agents work continuously over a week on a single codebase. Examples include a web browser built from scratch with 1M+ lines across about 1,000 files, and a Java LSP with 2.5M+ lines across about 10,000 files. They also report peaks around 10M tool calls in a week, with bursts around 1,000 commits per hour. Source: <a href="https://cursor.com/blog/scaling-agents">Scaling long-running autonomous coding</a>.</p>
+<p>This playbook is an operating model for how I achieved similar results. It is opinionated. It assumes you want throughput and you still want to ship safely: green CI, reviewable diffs, rollback paths, and no surprises in production.</p>
+
+<p>In concrete terms, a long-running agent:</p>
+<ul>
+<li>Plans and executes long, complex multi-step work</li>
+<li>Keeps score with a build-verify loop (tests, builds, linters, benchmarks, browser flows, queries)</li>
+<li>Self-heals when it hits failure (flakes, timeouts, tool errors, missing context)</li>
+<li>Maintains state across a long session (compaction, resume, fork)</li>
+<li>Leaves a paper trail you can audit (checkpoints, logs, evidence)</li>
+<li>Self-evolves by extracting skills, agent guidelines, and evals from past runs</li>
+</ul>
+
+<svg class="illustration" viewBox="0 0 600 260" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Six capabilities of a long-running agent">
+	  <rect width="600" height="260" rx="16" fill="#12151b"/>
+	  <text x="300" y="36" text-anchor="middle" fill="#5c6078" font-family="JetBrains Mono, monospace" font-size="9" letter-spacing="0.2em">WHAT AN AGENT DOES</text>
+	  <rect x="30" y="58" width="160" height="68" rx="10" fill="#1e2330" stroke="#4af0c0" stroke-width="1"/>
+	  <text x="110" y="85" text-anchor="middle" fill="#4af0c0" font-family="JetBrains Mono, monospace" font-size="9">PLANS</text>
+	  <text x="110" y="108" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="9">Multi-step work</text>
+	  <rect x="220" y="58" width="160" height="68" rx="10" fill="#1e2330" stroke="#4a9cf0" stroke-width="1"/>
+	  <text x="300" y="85" text-anchor="middle" fill="#4a9cf0" font-family="JetBrains Mono, monospace" font-size="9">VERIFIES</text>
+	  <text x="300" y="108" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="9">Build-verify loop</text>
+	  <rect x="410" y="58" width="160" height="68" rx="10" fill="#1e2330" stroke="#f0b84a" stroke-width="1"/>
+	  <text x="490" y="85" text-anchor="middle" fill="#f0b84a" font-family="JetBrains Mono, monospace" font-size="9">SELF-HEALS</text>
+	  <text x="490" y="108" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="9">Flakes &middot; timeouts &middot; errors</text>
+	  <rect x="30" y="150" width="160" height="68" rx="10" fill="#1e2330" stroke="#9b6ef0" stroke-width="1"/>
+	  <text x="110" y="177" text-anchor="middle" fill="#9b6ef0" font-family="JetBrains Mono, monospace" font-size="9">MAINTAINS STATE</text>
+	  <text x="110" y="200" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="9">Compaction &middot; resume &middot; fork</text>
+	  <rect x="220" y="150" width="160" height="68" rx="10" fill="#1e2330" stroke="#f06478" stroke-width="1"/>
+	  <text x="300" y="177" text-anchor="middle" fill="#f06478" font-family="JetBrains Mono, monospace" font-size="9">AUDITS</text>
+	  <text x="300" y="200" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="9">Checkpoints &middot; logs &middot; evidence</text>
+	  <rect x="410" y="150" width="160" height="68" rx="10" fill="#1e2330" stroke="#c084fc" stroke-width="1"/>
+	  <text x="490" y="177" text-anchor="middle" fill="#c084fc" font-family="JetBrains Mono, monospace" font-size="9">SELF-EVOLVES</text>
+	  <text x="490" y="200" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="9">Skills &middot; evals &middot; guides</text>
+  </svg>
+
+
+<h3 id="where-long-running-agents-shine">Where long-running agents shine</h3>
+<p>Great fits:</p>
+<ul>
+<li>Large refactors: API changes, renames, file moves, staged migrations</li>
+<li>Migrations: framework upgrades, dependency bumps, schema changes and backfills</li>
+<li>Reliability work: harden CI, shrink flakes, add checks and policies</li>
+<li>Performance work: benchmarks, profiling loops, regressions, perf budgets</li>
+<li>Test work: build suites, fix flakes, raise coverage where it matters</li>
+<li>Security hygiene: dependency audits, secret scanning, permissions cleanup</li>
+<li>Data analysis and reporting: repeated queries, synthesis, polished writeups</li>
+<li>Feature work: wide-but-shallow features with crisp specs and verifiable acceptance criteria, usually behind a flag</li>
+<li>Internal tools: dashboards, admin panels, backoffice workflows with clear "done"</li>
+<li>Incident work: log triage, repros, mitigations, postmortems and follow-ups</li>
+</ul>
+<h3 id="where-they-are-a-bad-fit">Where they are a bad fit</h3>
+<p>Prefer interactive work when:</p>
+<ul>
+<li>The problem is ill-defined and you need rapid back-and-forth</li>
+<li>The best solution requires taste and fast iteration (UX polish, naming, API design)</li>
+<li>The acceptance criteria is subjective, not measurable</li>
+<li>The blast radius is high and the rollback story is weak</li>
+<li>The work requires frequent human decisions (product tradeoffs, stakeholder input)</li>
+</ul>
+
+<div class="sep"></div>
+<section class="part" id="stack-and-setup">
+  <span class="chapter-num">Section</span>
+  <h2>Stack and setup</h2>
+  <div class="chapter-line"></div>
+</section>
+
+<section class="chapter chapter-first" id="models">
+  <span class="chapter-num">Chapter 04</span>
+  <h2>Models</h2>
+  <div class="chapter-line"></div>
+</section>
+
+<h3 id="what-you-want-in-a-long-running-model">What you want in a long-running model</h3>
+<p>Look for:</p>
+<ul>
+<li>Strong tool use, especially shell output parsing</li>
+<li>Endurance on long, boring sequences (keeps going, refusal to give up)</li>
+<li>Good recovery after failures and partial progress</li>
+<li>Refactor discipline (does not randomly rewrite style, can be guided with skills/AGENTS.md)</li>
+<li>Low hallucination rate around file paths, APIs, tool and CLI usage</li>
+</ul>
+<h3 id="my-point-in-time-take-feb-2026">My point-in-time take (Feb 2026)</h3>
+<p>If you want one default: <strong>Codex CLI + GPT-5.2 (high or xhigh)</strong>.</p>
+<p>For long-running agent work, this is the frontier stack right now. It runs tool loops for hours, compaction stays coherent, and it is easy to steer in real time.</p>
+<p>The big advantage is in-flight visibility. Codex shows the reasoning trace in real-time so you can redirect early. In my experience this saves a ton of time compared to harnesses where you mostly see output after a long step finishes.</p>
+<p>Codex's reasoning trace (thinking blocks) pairs strongly with its steering feature. You can see where the agent is headed mid-flight and cut off bad paths early by sending messages in real-time without interrupting its agent loop.</p>
+<p>Use your durable memory system for async observability. It is what you read in the morning, after compaction, and after restarts. Treat it as the system of record for decisions and evidence, even if you have thinking blocks.</p>
+<p>Claude Code does not expose internal reasoning the same way today. You can still run long jobs, but you should compensate with shorter execution steps, more checkpoints, and stricter logging.</p>
+<p>I use other harnesses for three reasons:</p>
+<ul>
+<li>I want a different model</li>
+<li>I am doing fast interactive work</li>
+<li>I am optimizing for cost on execution runs</li>
+</ul>
+<h3 id="claude-notes-opus-46">Claude notes (Opus 4.6)</h3>
+<p>Opus 4.6 is strong and I still use it for interactive work.</p>
+<p>For long-running background runs, it is not my default. Cursor put it bluntly: "Opus 4.5 tends to stop earlier and take shortcuts when convenient." Source: <a href="https://cursor.com/blog/scaling-agents">Scaling long-running autonomous coding</a>.</p>
+<p>While Anthropic's Opus 4.6 release claims better performance at long-running tasks, anecdotally it still gives up more easily compared to GPT-5.2/Codex-5.3 models. Apart from the training, I also suspect its partly because OpenAI allocates a very generous thinking budget on high and xhigh reasoning levels in Codex.</p>
+<p>If you are in a Claude-first stack, you can still run long jobs. You will usually want a stronger harness loop (hooks and a "Ralph loop"), plus the same fundamentals in this playbook. More on that in <a href="#harnesses-agent-runners">Harnesses</a>.</p>
+<h3 id="reasoning-effort-thinking-levels">Reasoning effort (thinking levels)</h3>
+<p>Most serious harnesses expose a reasoning effort setting like <code>low</code>, <code>medium</code>, <code>high</code>, <code>xhigh</code>.</p>
+<p>Practical rule:</p>
+<ul>
+<li>Plan with <code>high</code> or <code>xhigh</code>.</li>
+<li>Execute with <code>medium</code> or coding-specific models (e.g <code>gpt-5.3-codex-xhigh</code>).</li>
+<li>If execution feels slow, switch to a faster model before you drop effort.</li>
+</ul>
+<h3 id="open-weight-models-as-execution-engines">Open-weight models as execution engines</h3>
+<p>Open-weight models are now good enough to matter. With a strict verification loop, they can do a lot of the execution work at a fraction of the cost.</p>
+<p>A couple outside takes match what I see:</p>
+<ul>
+<li>"There are a wide range of "open weights" ... and they've been getting really good over the past six months." (<a href="https://simonwillison.net/2024/Dec/31/llms-in-2024/">Simon Willison</a>)</li>
+<li>"Delivering frontier-class performance at significantly lower inference costs." (<a href="https://aws.amazon.com/about-aws/whats-new/2025/11/deepseek-r1-distilled-model-amazon-bedrock-marketplace/">AWS</a>)</li>
+</ul>
+<p>How I use them:</p>
+<ul>
+<li>Plan and review with a frontier model at higher effort.</li>
+<li>Execute with an open-weight or cheaper model once the plan and test loop are locked.</li>
+<li>Keep steps small. Verify constantly. Commit often.</li>
+</ul>
+<p>Two choices matter here:</p>
+<ul>
+<li><strong>Harness (orchestrator):</strong> how you run the loop (Codex, Cursor, Claude Code, OpenCode, Pi).</li>
+<li><strong>Provider (routing):</strong> where the model comes from and how you pay (direct API, <a href="https://openrouter.ai/">OpenRouter</a>, <a href="https://www.baseten.co/">Baseten</a>, <a href="https://fireworks.ai/">Fireworks</a>, <a href="https://opencode.ai/docs/zen/">OpenCode Zen</a>).</li>
+</ul>
+<p>Pick the harness for workflow. Pick the provider for model access, pricing, caching, and compliance.</p>
+<figure class="media">
+  <img src="assets/providers/kimi-k2-5-token-cost.png" decoding="async" alt="Kimi K2.5 cost vs performance chart." />
+  <figcaption>Kimi K2.5 cost vs performance (source: <a href="https://www.kimi.com/blog/kimi-k2-5.html">Kimi K2.5</a>):</figcaption>
+</figure>
+<figure class="media">
+  <img src="assets/providers/glm-5-bench-20260212-011355.jpeg" decoding="async" alt="GLM-5 benchmark summary chart." />
+  <figcaption>GLM-5 benchmark summary (source: <a href="https://docs.z.ai/guides/llm">Z.ai LLM guide</a>):</figcaption>
+</figure>
+<figure class="media">
+  <img src="assets/providers/minimax-m25-bench.png" decoding="async" alt="MiniMax M2.5 benchmark summary chart." />
+  <figcaption>MiniMax M2.5 benchmark summary (source: <a href="https://www.minimax.io/news/minimax-m25">MiniMax M2.5</a>):</figcaption>
+</figure>
+
+<section class="chapter" id="harnesses-agent-runners">
+  <span class="chapter-num">Chapter 05</span>
+  <h2>Harnesses (agent runners)</h2>
+  <div class="chapter-line"></div>
+</section>
+
+<p>A harness is the software around the model. It is the difference between "chat with a model" and "operate an agent".</p>
+
+<svg class="illustration illustration-wide" viewBox="0 0 700 280" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Harness comparison">
+  <rect width="700" height="280" rx="16" fill="#12151b"/>
+  <text x="350" y="32" text-anchor="middle" fill="#5c6078" font-family="JetBrains Mono, monospace" font-size="9" letter-spacing="0.2em">HARNESS LANDSCAPE</text>
+
+  <!-- Card 1: Codex CLI  (x=30, w=148, center=104) -->
+  <rect x="30" y="52" width="148" height="110" rx="10" fill="#1e2330" stroke="#4af0c0" stroke-width="1.5"/>
+  <text x="104" y="78" text-anchor="middle" fill="#4af0c0" font-family="JetBrains Mono, monospace" font-size="11" font-weight="600">Codex CLI</text>
+  <text x="104" y="98" text-anchor="middle" fill="#fff" font-family="DM Sans, sans-serif" font-size="9">Default for long runs</text>
+  <text x="104" y="116" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="8">Plan mode &middot; Steering</text>
+  <text x="104" y="132" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="8">Session persistence</text>
+  <text x="104" y="148" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="8">Built-in review</text>
+
+  <!-- Card 2: Claude Code  (x=194, w=148, center=268) -->
+  <rect x="194" y="52" width="148" height="110" rx="10" fill="#1e2330" stroke="#9b6ef0" stroke-width="1.5"/>
+  <text x="268" y="78" text-anchor="middle" fill="#9b6ef0" font-family="JetBrains Mono, monospace" font-size="11" font-weight="600">Claude Code</text>
+  <text x="268" y="98" text-anchor="middle" fill="#fff" font-family="DM Sans, sans-serif" font-size="9">Feature-rich</text>
+  <text x="268" y="116" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="8">Hooks &middot; Stop hooks</text>
+  <text x="268" y="132" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="8">Ralph loop pattern</text>
+  <text x="268" y="148" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="8">Plugins ecosystem</text>
+
+  <!-- Card 3: Cursor  (x=358, w=148, center=432) -->
+  <rect x="358" y="52" width="148" height="110" rx="10" fill="#1e2330" stroke="#4a9cf0" stroke-width="1.5"/>
+  <text x="432" y="78" text-anchor="middle" fill="#4a9cf0" font-family="JetBrains Mono, monospace" font-size="11" font-weight="600">Cursor</text>
+  <text x="432" y="98" text-anchor="middle" fill="#fff" font-family="DM Sans, sans-serif" font-size="9">Background agents</text>
+  <text x="432" y="116" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="8">Concrete public writing</text>
+  <text x="432" y="132" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="8">Scaled agent ops</text>
+  <text x="432" y="148" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="8">Portable model</text>
+
+  <!-- Card 4: OpenCode · Pi  (x=522, w=148, center=596) -->
+  <rect x="522" y="52" width="148" height="110" rx="10" fill="#1e2330" stroke="#f0b84a" stroke-width="1.5"/>
+  <text x="596" y="78" text-anchor="middle" fill="#f0b84a" font-family="JetBrains Mono, monospace" font-size="11" font-weight="600">OpenCode &middot; Pi</text>
+  <text x="596" y="98" text-anchor="middle" fill="#fff" font-family="DM Sans, sans-serif" font-size="9">Model-agnostic</text>
+  <text x="596" y="116" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="8">Terminal-first UX</text>
+  <text x="596" y="132" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="8">Extensible &amp; hackable</text>
+  <text x="596" y="148" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="8">Multi-provider</text>
+
+  <!-- Bottom section: What to look for -->
+  <text x="350" y="190" text-anchor="middle" fill="#5c6078" font-family="JetBrains Mono, monospace" font-size="8" letter-spacing="0.15em">WHAT TO LOOK FOR IN A HARNESS</text>
+
+  <!-- Row 1 — aligned to card centers -->
+  <circle cx="104" cy="206" r="2" fill="#4af0c0" opacity="0.5"/>
+  <text x="104" y="220" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="9">Plan + execute modes</text>
+  <circle cx="268" cy="206" r="2" fill="#9b6ef0" opacity="0.5"/>
+  <text x="268" y="220" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="9">Session persistence</text>
+  <circle cx="432" cy="206" r="2" fill="#4a9cf0" opacity="0.5"/>
+  <text x="432" y="220" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="9">Coherent compaction</text>
+  <circle cx="596" cy="206" r="2" fill="#f0b84a" opacity="0.5"/>
+  <text x="596" y="220" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="9">Steering ergonomics</text>
+
+  <!-- Row 2 -->
+  <circle cx="104" cy="234" r="2" fill="#4af0c0" opacity="0.5"/>
+  <text x="104" y="248" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="9">Tool permissions</text>
+  <circle cx="268" cy="234" r="2" fill="#9b6ef0" opacity="0.5"/>
+  <text x="268" y="248" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="9">Background terminals</text>
+  <circle cx="432" cy="234" r="2" fill="#4a9cf0" opacity="0.5"/>
+  <text x="432" y="248" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="9">Skills + subagents</text>
+  <circle cx="596" cy="234" r="2" fill="#f0b84a" opacity="0.5"/>
+  <text x="596" y="248" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="9">Multi-provider</text>
+</svg>
+
+
+<h3 id="what-to-look-for">What to look for</h3>
+<ul>
+<li>Plan mode and execute mode</li>
+<li>Session persistence (resume, fork, export)</li>
+<li>Compaction that stays coherent after hours</li>
+<li>Tool permissions that scale: approvals, allowlists, repo policies like <code>AGENTS.md</code></li>
+<li>Background terminals for long commands (tests, builds, CI, migrations, browser runs)</li>
+<li>Structured memory support (<code>plan.md</code>, <code>checklist.yaml</code>, <code>run-log.md</code>)</li>
+<li>Skills for reusable workflows (see <a href="#skills-mcp-and-cli-tools">Skills, MCP, and CLI tools</a>)</li>
+<li>Subagents for specialists (explore, execute, review)</li>
+<li>Good ergonomics for steering and review</li>
+</ul>
+<h3 id="codex-cli">Codex (CLI)</h3>
+<p>This is my default harness for long-running coding work.</p>
+<p>Why it is best-in-class for long runs:</p>
+<ul>
+<li>Tool loops are the default. It can run tests, builds, and scripts for hours and keep the run moving.</li>
+<li>Sessions live on disk. Resume and fork are cheap, so you can treat runs like workstreams.</li>
+<li>Compaction stays usable. With good memory files, I rarely worry about context rot.</li>
+<li>Thinking blocks plus tool traces make steering effective. You can correct intent early.</li>
+<li>Permission control is clean, including <code>--yolo</code> when you want full access on a disposable machine.</li>
+<li>Built-in review workflows (<code>/review</code>)</li>
+</ul>
+<p>Two features I use constantly:</p>
+<ul>
+<li><strong>Plan mode:</strong> keep it in planning until you approve the approach.</li>
+<li><strong>Steering:</strong> send a correction mid-run so the next cycle course-corrects fast.</li>
+</ul>
+<p>Practical tips:</p>
+<ul>
+<li>Start in plan mode. Switch to execute after <code>plan.md</code> and <code>checklist.yaml</code> are crisp.</li>
+<li>Turn on steering for long runs.</li>
+<li>Use <code>--yolo</code> only when the environment is isolated and disposable.</li>
+</ul>
+<h3 id="claude-code">Claude Code</h3>
+<p>Claude Code is one of the most feature-rich harnesses today.</p>
+<p>If you want Claude Code to behave like a long-running runner, you need a "keep going even if you want to stop" loop for yoru agent:</p>
+<ul>
+<li><strong>Hooks:</strong> scripts that run on lifecycle events</li>
+<li><strong>Stop hooks:</strong> hooks that trigger when the agent is about to stop</li>
+<li><strong>Ralph loop:</strong> a stop-hook pattern that continues or restarts the run</li>
+</ul>
+<p>Anthropic documents hooks and the Ralph Wiggum plugin. See <a href="https://docs.anthropic.com/en/docs/claude-code/hooks">Claude Code hooks</a> and <a href="https://claude.com/docs/claude-code/plugins#ralph-wiggum">Claude Code plugins</a>. Many also roll their own bash loop so they can restart fresh sessions with next context when long runs start to experience context rot.</p>
+<p>If you are running Opus for hours, external memory is the crux. Treat <code>plan.md</code>, <code>checklist.yaml</code>, and <code>run-log.md</code> as mandatory, and design your loop to reread them after compaction and restarts.</p>
+<h3 id="cursor-background-agents">Cursor background agents</h3>
+<p>Cursor has some of the most concrete public writing on long-running agents at scale. Read <a href="https://cursor.com/blog/scaling-agents">Scaling long-running autonomous coding</a> even if you do not use Cursor.</p>
+<p>The operating model is portable: treat agent runs like running software. Monitor them, recover from errors, and expect loops that can span a full day.</p>
+<h3 id="opencode">OpenCode</h3>
+<p>OpenCode is a model-agnostic harness worth understanding.</p>
+<p>It has:</p>
+<ul>
+<li>A great terminal UI</li>
+<li>Multiple providers and models under one UX</li>
+<li>Granular permissions (ask, allow, deny) by tool</li>
+<li>Plugins and hooks (including compaction hooks)</li>
+<li>Subagents you can invoke for focused work</li>
+<li>A server mode (<code>opencode serve</code>) with an API for automation</li>
+</ul>
+<p>Docs: <a href="https://opencode.ai/docs/">OpenCode</a>.</p>
+<h3 id="pi">Pi</h3>
+<p>Pi is a small, extensible terminal harness. It is a good fit when you want a model-agnostic core that you can extend, and you want to bake in your own workflows and memory system.</p>
+<p>Why it matters for long-running work:</p>
+<ul>
+<li>Strong session system (resume, branching session tree)</li>
+<li>Steering and follow-up messages as first-class concepts</li>
+<li>Extensions that let the agent extend the harness itself (tools, providers, UI)</li>
+</ul>
+<p>Pi is also used as an SDK in projects like OpenClaw, which is a good testament to its extensibility. See <a href="https://github.com/mariozechner/pi">Pi</a> and <a href="https://github.com/openclaw/openclaw">OpenClaw</a>.</p>
+
+<section class="chapter" id="tracking-the-frontier">
+  <span class="chapter-num">Chapter 06</span>
+  <h2>Tracking the frontier</h2>
+  <div class="chapter-line"></div>
+</section>
+
+<p>This space moves fast. The meta-skill is switching stacks without chaos.</p>
+<p>My loop:</p>
+<ul>
+<li>Keep a default stack and document it (model, harness, effort levels, memory files, safety mode).</li>
+<li>Follow release notes, pricing pages, and technique writeups. Frontier labs publish some of the best material on how to run agents well. Start with the OpenAI developer blog.
+<ul>
+<li>OpenAI (Codex, models, pricing)</li>
+<li>Anthropic (Claude Code, models, pricing)</li>
+<li>Cursor (Anysphere)</li>
+<li>Moonshot (Kimi), Z.ai (GLM), MiniMax</li>
+</ul></li>
+<li>Follow builders who ship in public and post real runs and failure modes. Most real-time discussion is on X.</li>
+<li>Keep a small eval suite in your repo and rerun it when a new model drops. Start by turning 10 to 20 real repo tasks into evals. See <a href="#evals-measure-your-reality">Evals</a>.</li>
+<li>When you are tempted to switch stacks, do one eval task and one "feel" run first.</li>
+</ul>
+<h3 id="evals-measure-your-reality">Evals (measure your reality)</h3>
+<p>An eval is a small, repeatable task with a known "done" state. It measures the stuff you care about: repo conventions, tool access, flaky tests, migrations, CI, and constraints.</p>
+<p>Benchmarks are useful. They are not enough. Your evals are what you should optimize for.</p>
+<p>How to build them:</p>
+<ul>
+<li>Start with 10 to 20 real tasks from your repo.</li>
+<li>Mine <code>run-log.md</code> for failures and manual interventions, then turn those into eval tasks.</li>
+<li>After each long run, ask an agent to read <code>run-log.md</code> and propose new evals.</li>
+<li>Eventually turn it into a skill or encode into AGENT.md so the agent always does this</li>
+<li>Keep comparisons honest. Hold the harness and workflow fixed. Change one variable at a time.</li>
+</ul>
+
+<section class="chapter" id="cost-management">
+  <span class="chapter-num">Chapter 07</span>
+  <h2>Cost management</h2>
+  <div class="chapter-line"></div>
+</section>
+
+<p>Long-running agents can burn a lot of tokens. Set a budget. Pick a routing strategy. Then run your verification loop often so you do not pay to learn the same thing twice.</p>
+<h3 id="pick-a-cost-model-that-matches-the-work">Pick a cost model that matches the work</h3>
+<ul>
+<li><strong>Flat-rate subscriptions</strong> can be the best deal for long runs, as long as you stay inside the limits.</li>
+<li><strong>Usage-based APIs</strong> are great when you need control, custom routing, or you want to mix models.</li>
+<li><strong>Open-weight models</strong> can be excellent for lower-cost execution runs, especially with strong verification loops.</li>
+</ul>
+<h3 id="chatgpt-pro-vs-claude-max">ChatGPT Pro vs Claude Max</h3>
+<p>If you want to run long background agents today, ChatGPT Pro is the best subscription for it.</p>
+<p>Price check: ChatGPT Pro is $200/month as of 2026-02-24. See <a href="https://chatgpt.com/pricing">ChatGPT pricing</a>.</p>
+<p>Two real reasons:</p>
+<ul>
+<li>The limits have been extremely generous in practice for long-running Codex work.</li>
+<li>The workflow is tightly integrated with the frontier OpenAI coding models.</li>
+</ul>
+<p>In one refactor run that consumed 52M+ tokens (and 2B+ cached tokens), I still had about 35% of my weekly limit remaining on Pro. I was also doing other heavy Codex usage that did not appear in the token count. The limit window reset by the time the job finished, so it had no real impact on my next runs.</p>
+<p>These plans evolve. Check the current limits before you commit to a workflow. Some people buy multiple subscriptions to increase headroom. Read the terms and use judgment.</p>
+<p>Claude Max has strict five-hour windows and message caps. That is fine for interactive work. It becomes a bottleneck for multi-hour background runs and parallel agents. See <a href="https://support.anthropic.com/en/articles/9797557-usage-limit-best-practices">Anthropic usage limit best practices</a>.</p>
+<h3 id="corporate-reality-and-model-routing">Corporate reality and model routing</h3>
+<p>If you are doing this on a company codebase, a personal flat-rate plan might not be viable. Compliance, billing, and data policies usually push you toward enterprise plans or API usage.</p>
+<p>If you are paying per token, do not run everything on the most expensive model. Route:</p>
+<ul>
+<li>Plan and review on a frontier model at high effort.</li>
+<li>Execute on a cheaper model once the plan and verification loop are locked.</li>
+</ul>
+<p>Concrete examples:</p>
+<ul>
+<li>In OpenCode, route planning to GPT-5.2 (high/xhigh), then route execution tasks to Kimi or GLM when the steps are clear and the checks are strong.</li>
+<li>In Codex or Claude Code, do the planning and review with the frontier model on high reasoning levels, then execute with a smaller model/lower reasoning levels. Alternatively, ask your harness to launch an OpenCode subagent for execution runs with cheaper models.</li>
+</ul>
+<p>The rule is simple: switching models should not change the verification bar. Keep the same acceptance criteria, evidence, and audit trail.</p>
+<h3 id="a-real-run-token-scale">A real run (token scale)</h3>
+<p>This is what one big refactor run looked like for me:</p>
+<div class="table-wrap">
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th style="text-align: right;">Tokens</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Total</td>
+<td style="text-align: right;">52,146,126</td>
+</tr>
+<tr>
+<td>Input</td>
+<td style="text-align: right;">46,053,693</td>
+</tr>
+<tr>
+<td>Cached input</td>
+<td style="text-align: right;">2,164,821,248</td>
+</tr>
+<tr>
+<td>Output</td>
+<td style="text-align: right;">6,092,433</td>
+</tr>
+<tr>
+<td>Reasoning</td>
+<td style="text-align: right;">3,542,400</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Cached input is the story here. That is repeated context. Prompt caching changes the economics by an order of magnitude.</p>
+<h3 id="what-this-run-would-cost-on-apis">What this run would cost on APIs</h3>
+<p>Assumptions:</p>
+<ul>
+<li>"Cached input" is billed as prompt cache reads (not writes).</li>
+<li>Some providers have separate pricing tiers for very large prompts. This estimate assumes the base tier.</li>
+<li>Cached token counts depend on the harness and provider. Cache hit rate is not a model property. It is an integration property.</li>
+<li>Some providers also bill cached input storage. If your provider does, include it in your own math.</li>
+<li>Some providers bill reasoning tokens as output. Confirm how your route counts them.</li>
+<li>Prices change often. These are point-in-time.</li>
+</ul>
+<div class="table-wrap">
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th style="text-align: right;">Input ($/1M)</th>
+<th style="text-align: right;">Cached input ($/1M)</th>
+<th style="text-align: right;">Output ($/1M)</th>
+<th style="text-align: right;">Est cost (this run)</th>
+<th>Notes</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ChatGPT Pro</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">$200.00</td>
+<td>Flat subscription if you stay within limits</td>
+<td></td>
+</tr>
+<tr>
+<td>GPT-5.2</td>
+<td style="text-align: right;">1.75</td>
+<td style="text-align: right;">0.175</td>
+<td style="text-align: right;">14.00</td>
+<td style="text-align: right;">$544.73</td>
+<td>OpenAI API pricing</td>
+<td></td>
+</tr>
+<tr>
+<td>Claude Opus 4.6</td>
+<td style="text-align: right;">5.00</td>
+<td style="text-align: right;">0.50</td>
+<td style="text-align: right;">25.00</td>
+<td style="text-align: right;">$1,464.99</td>
+<td>Anthropic pricing + prompt caching reads</td>
+<td></td>
+</tr>
+<tr>
+<td>Kimi K2.5</td>
+<td style="text-align: right;">0.60</td>
+<td style="text-align: right;">0.10</td>
+<td style="text-align: right;">3.00</td>
+<td style="text-align: right;">$262.39</td>
+<td>Moonshot pricing + context caching</td>
+<td></td>
+</tr>
+<tr>
+<td>GLM-4.7</td>
+<td style="text-align: right;">0.60</td>
+<td style="text-align: right;">0.11</td>
+<td style="text-align: right;">2.20</td>
+<td style="text-align: right;">$279.17</td>
+<td>Z.ai pricing (cached storage limited-time free)</td>
+<td></td>
+</tr>
+<tr>
+<td>GLM-5</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">0.20</td>
+<td style="text-align: right;">3.20</td>
+<td style="text-align: right;">$498.51</td>
+<td>Z.ai pricing (cached storage limited-time free)</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Pricing sources:</p>
+<ul>
+<li>OpenAI: <a href="https://openai.com/api/pricing/">API pricing</a></li>
+<li>Anthropic: <a href="https://www.anthropic.com/pricing">Pricing</a></li>
+<li>Moonshot (Kimi): <a href="https://platform.moonshot.cn/docs/pricing/chat">Model pricing</a></li>
+<li>Z.ai (GLM): <a href="https://docs.z.ai/guides/overview/pricing.md">Pricing</a></li>
+</ul>
+<h3 id="spend-tokens-where-they-buy-leverage">Spend tokens where they buy leverage</h3>
+<p>Good places to spend:</p>
+<ul>
+<li>Planning and design</li>
+<li>Writing tests and hardening verification</li>
+<li>Debugging failures</li>
+<li>Review and risk analysis</li>
+</ul>
+<p>Places to be stingy:</p>
+<ul>
+<li>Repetitive mechanical edits</li>
+<li>Long tool output pasted into chat</li>
+<li>Re-running expensive steps without narrowing the problem</li>
+</ul>
+
+<section class="chapter" id="safety-and-permissions">
+  <span class="chapter-num">Chapter 08</span>
+  <h2>Safety and permissions</h2>
+  <div class="chapter-line"></div>
+</section>
+
+<p>Long-running agents work because they can run unattended. That also means they can fail unattended.</p>
+
+<svg class="illustration" viewBox="0 0 600 180" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Two safety modes">
+  <rect width="600" height="180" rx="16" fill="#12151b"/>
+  <rect x="30" y="30" width="250" height="120" rx="12" fill="#1e2330" stroke="#4af0c0" stroke-width="1.5"/>
+  <text x="155" y="58" text-anchor="middle" fill="#4af0c0" font-family="JetBrains Mono, monospace" font-size="10" font-weight="600">CONSTRAINED MODE</text>
+  <text x="155" y="80" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="9">Sandbox + allowlists</text>
+  <text x="155" y="98" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="9">Read-only by default</text>
+  <text x="155" y="116" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="9">Approvals for destructive steps</text>
+  <text x="155" y="134" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="9">No secrets by default</text>
+  <rect x="320" y="30" width="250" height="120" rx="12" fill="#1e2330" stroke="#f0b84a" stroke-width="1.5"/>
+  <text x="445" y="58" text-anchor="middle" fill="#f0b84a" font-family="JetBrains Mono, monospace" font-size="10" font-weight="600">AUTONOMY MODE</text>
+  <text x="445" y="80" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="9">Disposable machine</text>
+  <text x="445" y="98" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="9">No personal data or keys</text>
+  <text x="445" y="116" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="9">Low-privilege tokens</text>
+  <text x="445" y="134" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="9">--yolo for full access</text>
+</svg>
+
+
+<p>There are two sane ways to operate.</p>
+<h3 id="constrained-mode-sandbox--allowlists">Constrained mode (sandbox + allowlists)</h3>
+<p>Use this when the agent is running on your real machine, or it can touch anything you care about.</p>
+<ul>
+<li>Read-only or workspace-write by default</li>
+<li>Explicit allowlists for commands, paths, and network egress</li>
+<li>Approvals for destructive steps, installs, and anything outside the repo</li>
+<li>No secrets available by default</li>
+</ul>
+<p>This mode takes setup. It reduces surprise.</p>
+<h3 id="autonomy-mode-free-rein-on-a-disposable-machine">Autonomy mode (free rein on a disposable machine)</h3>
+<p>If you want real autonomy, isolate first and then loosen permissions.</p>
+<ul>
+<li>Dedicated VM, container, or old laptop</li>
+<li>No personal data, no browser profile, no SSH keys you care about</li>
+<li>Low-privilege tokens scoped to dev environments</li>
+<li><code>--yolo</code> or equivalent so the agent can unblock itself without you babysitting it</li>
+</ul>
+<p>If the environment is disposable, the agent can safely do open-ended work like installing CLIs, running scripts, and chasing flaky failures.</p>
+<h3 id="secrets-and-data">Secrets and data</h3>
+<p>Rules I follow:</p>
+<ul>
+<li>Never paste secrets into prompts. Put secrets in environment variables and have the agent read them in scripts.</li>
+<li>Hydrate environment variables via a secrets manager (Apple Keychain, 1Password CLI, cloud secret stores) in your shell or CI.</li>
+<li>Use dedicated low-privilege credentials for agent runs (service accounts, scoped tokens), especially for sensitive APIs like GitHub and Google Workspace.</li>
+<li>Prefer short-lived tokens and rotate them.</li>
+<li>Treat tool output as log data. If it might contain PII, write it to a file and keep it local.</li>
+<li>Add secret scanning to CI if you do not already have it.</li>
+<li>Be conservative with new skills, MCP servers, and dependencies. Prefer widely adopted tooling. If you install something new, skim the code first. Use an agent to help audit, then decide.</li>
+</ul>
+<h3 id="when-to-use---yolo">When to use <code>--yolo</code></h3>
+<p><code>--yolo</code> (or similar "dangerous" modes) is for environments that are already isolated.</p>
+<p>This mode is often necessary for open-ended jobs. When an agent is stuck, it may need to install tooling, poke at the network, or run cleanup tasks without waiting for you.</p>
+<p>Good patterns:</p>
+<ul>
+<li>Ephemeral dev environments</li>
+<li>Dedicated VMs</li>
+<li>Containers with limited mounts</li>
+<li>Remote sandboxes</li>
+</ul>
+<p>If you go this route, treat the environment as disposable. Assume it may get corrupted.</p>
+<h3 id="isolation-options">Isolation options</h3>
+<p>If you want full autonomy without fear:</p>
+<ul>
+<li>Run agents in a fresh VM</li>
+<li>Use a disposable dev environment platform (for example <a href="https://www.daytona.io/">Daytona</a>, <a href="https://sprites.dev/">sprites.dev</a>, <a href="https://github.com/features/codespaces">Codespaces</a>, or your own VM templates)</li>
+<li>Keep a clean separation between agent workspaces and your real machine</li>
+</ul>
+
+<div class="sep"></div>
+<section class="part" id="operating-system">
+  <span class="chapter-num">Section</span>
+  <h2>Operating system</h2>
+  <div class="chapter-line"></div>
+</section>
+
+<p>Long-running agents succeed when you treat them like production systems.</p>
+<p>Non-negotiables:</p>
+<ul>
+<li>A <strong>build-verify</strong> loop. The agent must be able to prove progress with tools.</li>
+<li><strong>A durable memory system.</strong> The chat becomes unreadable after a few hours. Your memory files become your dashboard.</li>
+<li><strong>Observability and audit trail.</strong> <code>run-log.md</code>, <code>checklist.yaml</code>, CI, and in-flight visibility (tool traces, plus thinking blocks in Codex) should make it obvious what happened and what is verified.</li>
+<li><strong>Checkpointing.</strong> Lots of small commits and clean rollback paths.</li>
+<li><strong>Steering.</strong> Short corrective instructions mid-run to prevent drift and wasted time.</li>
+<li><strong>Review workflows that scale.</strong> Agent-first review, then a structured human review for high-risk areas.</li>
+<li><strong>Self-evolution.</strong> Turn failures into skills, agent guidelines (<code>AGENTS.md</code>), and repo-local evals.</li>
+</ul>
+<section class="chapter" id="the-three-file-memory-system">
+  <span class="chapter-num">Chapter 09</span>
+  <h2>The three-file memory system</h2>
+  <div class="chapter-line"></div>
+</section>
+
+<p>For long runs, I keep three files at the root of the repo:</p>
+<ol type="1">
+<li><code>plan.md</code> for the blueprint and constraints</li>
+<li><code>checklist.yaml</code> for executable work items and acceptance criteria</li>
+<li><code>run-log.md</code> for an append-only ops log (decisions, evidence, failures, fixes)</li>
+</ol>
+
+<svg class="illustration illustration-wide" viewBox="0 0 700 220" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Three-file memory system">
+  <rect width="700" height="220" rx="16" fill="#12151b"/>
+  <text x="350" y="32" text-anchor="middle" fill="#5c6078" font-family="JetBrains Mono, monospace" font-size="9" letter-spacing="0.2em">THE THREE-FILE MEMORY SYSTEM</text>
+
+  <!-- plan.md card -->
+  <rect x="40" y="50" width="190" height="145" rx="12" fill="#1e2330" stroke="#4af0c0" stroke-width="1.5"/>
+  <rect x="41" y="51" width="188" height="40" rx="11" fill="#4af0c0" fill-opacity="0.08"/>
+  <line x1="41" y1="91" x2="229" y2="91" stroke="#4af0c0" stroke-opacity="0.15" stroke-width="1"/>
+  <text x="135" y="77" text-anchor="middle" fill="#4af0c0" font-family="JetBrains Mono, monospace" font-size="12" font-weight="600">plan.md</text>
+  <text x="60" y="115" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="10">Blueprint</text>
+  <text x="60" y="133" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="10">Constraints</text>
+  <text x="60" y="151" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="10">Architecture</text>
+  <text x="60" y="169" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="10">Verification strategy</text>
+
+  <!-- checklist.yaml card -->
+  <rect x="255" y="50" width="190" height="145" rx="12" fill="#1e2330" stroke="#4a9cf0" stroke-width="1.5"/>
+  <rect x="256" y="51" width="188" height="40" rx="11" fill="#4a9cf0" fill-opacity="0.08"/>
+  <line x1="256" y1="91" x2="444" y2="91" stroke="#4a9cf0" stroke-opacity="0.15" stroke-width="1"/>
+  <text x="350" y="77" text-anchor="middle" fill="#4a9cf0" font-family="JetBrains Mono, monospace" font-size="12" font-weight="600">checklist.yaml</text>
+  <text x="275" y="115" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="10">Work items</text>
+  <text x="275" y="133" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="10">Acceptance criteria</text>
+  <text x="275" y="151" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="10">Current status</text>
+  <text x="275" y="169" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="10">Active task tracking</text>
+
+  <!-- run-log.md card -->
+  <rect x="470" y="50" width="190" height="145" rx="12" fill="#1e2330" stroke="#f0b84a" stroke-width="1.5"/>
+  <rect x="471" y="51" width="188" height="40" rx="11" fill="#f0b84a" fill-opacity="0.08"/>
+  <line x1="471" y1="91" x2="659" y2="91" stroke="#f0b84a" stroke-opacity="0.15" stroke-width="1"/>
+  <text x="565" y="77" text-anchor="middle" fill="#f0b84a" font-family="JetBrains Mono, monospace" font-size="12" font-weight="600">run-log.md</text>
+  <text x="490" y="115" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="10">Append-only ops log</text>
+  <text x="490" y="133" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="10">Decisions &amp; evidence</text>
+  <text x="490" y="151" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="10">Failures &amp; fixes</text>
+  <text x="490" y="169" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="10">Audit trail</text>
+</svg>
+
+
+<p>These files do three jobs:</p>
+<ul>
+<li><strong>Durable memory:</strong> they survive compaction and session forks.</li>
+<li><strong>Observability:</strong> they let you understand what the agent is doing without reading a 12 hour chat log.</li>
+<li><strong>Self-evolution:</strong> they turn one run into many. Mine <code>run-log.md</code> and <code>checklist.yaml</code> into skills, agent guidelines, and repo evals.</li>
+</ul>
+
+<section class="chapter" id="skills-mcp-and-cli-tools">
+  <span class="chapter-num">Chapter 10</span>
+  <h2>Skills, MCP, and CLI tools</h2>
+  <div class="chapter-line"></div>
+</section>
+
+<p>Tooling is the difference between a plain-text LLM and an autonomous agent.</p>
+<h3 id="skills-small-reusable-playbooks">Skills (small, reusable playbooks)</h3>
+<p>Skills are small instruction bundles that teach your agent how to do a specific thing inside your world.</p>
+<p>There is an emerging "Agent Skills" standard for packaging skills in a portable way. See <a href="https://agentskills.io/home">Agent Skills</a>.</p>
+<p>Typical structure:</p>
+<ul>
+<li><code>SKILL.md</code> with YAML metadata (<code>name</code>, <code>description</code>)</li>
+<li>Optional <code>scripts/</code> for deterministic automation</li>
+<li>Optional <code>references/</code> for docs, schemas, and runbooks</li>
+<li>Optional <code>assets/</code> for static files</li>
+</ul>
+<p>The key trick is progressive disclosure:</p>
+<ul>
+<li>Load only skill names and descriptions by default.</li>
+<li>Pull the full <code>SKILL.md</code> body only when needed.</li>
+<li>Pull references only when the skill needs them.</li>
+</ul>
+<p>Good skills:</p>
+<ul>
+<li>Are short and procedural</li>
+<li>Include verification steps</li>
+<li>Bundle scripts when possible</li>
+<li>Reference docs instead of pasting them into prompts</li>
+</ul>
+<p>Examples worth having in most repos:</p>
+<ul>
+<li>"ci-triage" (fetch failing logs, reproduce locally, bisect flake)</li>
+<li>"db-migration" (safe migration patterns, backfills, rollback)</li>
+<li>"release" (tag, build, deploy, smoke test)</li>
+<li>"clean-commit" (narrative rebuild)</li>
+</ul>
+<p>A strong pattern:</p>
+<ol type="1">
+<li>Do a small slice interactively.</li>
+<li>Turn that into a skill with a few golden examples.</li>
+<li>Run the long job using the skill.</li>
+</ol>
+<p>If you want a good mental model for skills and progressive disclosure, read <a href="https://developers.openai.com/blog/skills-shell-tips/">Skills and shell tips</a>.</p>
+<h3 id="mcp-servers-capabilities-with-context-cost">MCP servers (capabilities with context cost)</h3>
+<p>MCP (Model Context Protocol) is a standard way to connect agents to external tools and data sources.</p>
+<p>Common uses:</p>
+<ul>
+<li>Deep code or library lookup (DeepWiki)</li>
+<li>Data access (Postgres)</li>
+<li>Browser automation</li>
+<li>Connecting external systems (Linear, Jira, feature flags, on-call tools)</li>
+</ul>
+<p>High leverage examples:</p>
+<ul>
+<li><strong>DeepWiki:</strong> an AI-powered GitHub research tool by Cognition Labs (the Devin team). Use it when you need repo-grounded answers fast without spelunking every file.</li>
+<li><strong>Postgres:</strong> validate assumptions against real data. Explore distributions, design backfills, test migration safety, and generate reports. Keep it read-only unless you have strict write policies.</li>
+</ul>
+<p>Tradeoff: MCP can be heavy. It can bloat the context with tool instructions and verbose outputs.</p>
+<p>Use MCP when:</p>
+<ul>
+<li>The task needs live data or deep docs from an external system, and there is an official or well-maintained MCP server</li>
+<li>Outputs are structured and the agent can query again</li>
+</ul>
+<p>Use CLI tools when:</p>
+<ul>
+<li>You want cheap, composable output</li>
+<li>You want pipes, filters, and scripts</li>
+<li>You want minimal context bloat</li>
+</ul>
+<h3 id="you-might-not-need-mcp">You might not need MCP</h3>
+<p>MCP is useful. It is also easy to reach for too early.</p>
+<p>Most harnesses load tool descriptions eagerly at the start of the run so the model knows what is available. This also helps prompt caching. The context cost still counts, even when the tokens are cheap.</p>
+<p>Two problems show up fast:</p>
+<ol type="1">
+<li><p><strong>Context tax.</strong> Big tool surfaces steal working memory. For browser tooling, it is common to burn about 14k to 18k tokens just describing the toolset. That cost hits before the job starts. (<a href="https://mariozechner.at/posts/2025-11-02-what-if-you-dont-need-mcp/">What if you don't need MCP at all?</a>)</p></li>
+<li><p><strong>Weak composability.</strong> A lot of composition happens through inference instead of code. Outputs flow back through the model, then you ask it to stitch the steps together. Long runs get harder to rerun, harder to audit, and harder to keep deterministic. Code and CLI workflows compose cleanly. (<a href="https://lucumr.pocoo.org/2025/7/3/tools/">Tools: Code Is All You Need</a>)</p></li>
+</ol>
+<p>A code-first setup is boring and it works:</p>
+<ul>
+<li>Have the agent write a tiny script in the repo (API calls, pagination, scraping, queries, format conversions).</li>
+<li>Keep the interface small: a short README plus a couple commands. Make it a skill.</li>
+<li>Write artifacts to disk (JSON, CSV, screenshots, diffs). Link them from <code>run-log.md</code>.</li>
+<li>If output is wrong, have the agent evolve the script. Do not add more tools.</li>
+</ul>
+<p>Use MCP when you need real system access with auth, or when the external system is the work (SaaS, tickets, CRM, on-call tooling). Keep servers minimal and outputs structured.</p>
+<p>Cloudflare's "Code Mode" is a cool example of where this is heading: a fixed tool surface (search + execute), a typed SDK, and a sandboxed runtime. It is new, so treat it as a signal and watch the space. (<a href="https://blog.cloudflare.com/code-mode-mcp/">Code Mode: give agents an entire API in 1,000 tokens</a>)</p>
+<h3 id="browser-automation-real-verification">Browser automation (real verification)</h3>
+<p>Browser automation is a great verification loop when:</p>
+<ul>
+<li>You do not trust the test suite yet</li>
+<li>The change is UI-heavy</li>
+<li>The bug only reproduces end-to-end</li>
+</ul>
+<p>Common approaches:</p>
+<ul>
+<li><a href="https://github.com/ChromeDevTools/chrome-devtools-mcp">Chrome DevTools MCP</a></li>
+<li><a href="https://github.com/microsoft/playwright-mcp">Playwright MCP</a></li>
+<li><a href="https://github.com/remorses/playwriter">Playwriter</a> (CLI-driven browser automation with a small interface)</li>
+<li>A tiny script toolkit in your repo (start, navigate, eval, screenshot), wrapped as a skill</li>
+</ul>
+<p>Two rules:</p>
+<ol type="1">
+<li>Keep flows short and deterministic.</li>
+<li>Save screenshots and logs to files, then link them in <code>run-log.md</code>.</li>
+</ol>
+<h3 id="cli-tools-are-underrated">CLI tools are underrated</h3>
+<p>Once you internalize the code-first approach, CLI tools become the default tool layer.</p>
+<p>CLI tools are perfect for long-running agents:</p>
+<ul>
+<li>Deterministic</li>
+<li>Parsable output</li>
+<li>Composable (Unix philosophy)</li>
+<li>Scriptable. Agents are great at writing glue code.</li>
+</ul>
+<p>If a tool is well known (like <code>gh</code>), the agent will usually figure it out. If a tool is obscure, have the agent write a wrapper script and a short README, then turn it into a skill.</p>
+
+<section class="chapter" id="planning">
+  <span class="chapter-num">Chapter 11</span>
+  <h2>Planning</h2>
+  <div class="chapter-line"></div>
+</section>
+
+<p>Long runs are won in the planning phase.</p>
+<h3 id="start-by-forcing-clarity">Start by forcing clarity</h3>
+<p>Ask the agent to ask you questions until scope is crisp:</p>
+<ul>
+<li>What is the target state?</li>
+<li>What does "done" mean?</li>
+<li>What should never change?</li>
+<li>What is the rollout and rollback plan?</li>
+<li>What are the failure modes?</li>
+</ul>
+<h3 id="kickoff-one-prompt-three-files">Kickoff (one prompt, three files)</h3>
+<p>A long run starts the same way every time:</p>
+<ol type="1">
+<li>Copy the templates from this playbook into your repo root: <code>plan.md</code>, <code>checklist.yaml</code>, <code>run-log.md</code>.</li>
+<li>Paste the kickoff prompt from <a href="#templates">Templates</a> into your harness. It should fill in those files, then stop and wait for approval.</li>
+<li>Approve the plan and checklist.</li>
+<li>Execute <code>checklist.yaml</code> until the tasks reach terminal states.</li>
+</ol>
+<p>One rule: do not keep a second plan in chat. The plan lives in <code>plan.md</code>. Execution state lives in <code>checklist.yaml</code>. Evidence lives in <code>run-log.md</code>.</p>
+<h3 id="define-your-verification-loop">Define your verification loop</h3>
+<p>Long-running agents need a self-verifying feedback loop. Pick the loop, then make it explicit in the plan.</p>
+<p>Common loops:</p>
+<ul>
+<li>Unit and integration tests</li>
+<li>API tests (contract tests, smoke tests, real API calls in a sandbox)</li>
+<li>Typecheck and lint</li>
+<li>Build artifacts</li>
+<li>End-to-end browser flows with screenshots</li>
+<li>Data validations (queries, metrics checks, diffs)</li>
+</ul>
+<p>If you do not have a loop, build the loop first.</p>
+<p><strong>Pattern: red/green TDD.</strong> A simple, agent-friendly build-verify loop is: write a test that fails (red), make it pass (green), repeat. It forces the agent to prove progress and prevents plausible-but-wrong changes.</p>
+<ol type="1">
+<li><strong>Red:</strong> Add or update a test that captures the next acceptance criterion. Run it and confirm it fails for the expected reason.</li>
+<li><strong>Green:</strong> Make the smallest change that makes that test pass. Rerun and capture the passing output as evidence.</li>
+<li><strong>Repeat:</strong> Move to the next slice. If the new test never failed, it is not testing the behavior you think it is.</li>
+</ol>
+<p>Use "red/green TDD" explicitly in prompts; models understand the shorthand. Source: <a href="https://simonwillison.net/guides/agentic-engineering-patterns/red-green-tdd/">Simon Willison: Red-green TDD (agentic engineering patterns)</a>.</p>
+<h3 id="configure-skills-and-mcp-before-refactors">Configure skills and MCP (before refactors)</h3>
+<p>Skills (and MCP if you need data from external systems) are critical to make sure your agent has all the tools for a successful run.</p>
+<p><strong>Skills</strong></p>
+<ul>
+<li>Store skills in one place and keep it consistent across repos. Commit the skill definitions. Keep secrets in env vars.</li>
+<li>Start with a tiny starter pack: <code>repo-map</code>, <code>ci-triage</code>, <code>refactor-pattern</code>, <code>verify</code>, <code>clean-commit</code>, <code>review</code>.</li>
+<li>Put the skill inventory and "when to use what" in <code>plan.md</code> so routing is deterministic.</li>
+<li>Add a pre-flight task to <code>checklist.yaml</code> that runs the key skills once and records outputs in <code>run-log.md</code>.</li>
+</ul>
+<p><strong>MCP</strong></p>
+<ul>
+<li>Only add servers that you will actually use in this run. More tools means more surface area and more noise.</li>
+<li>Prefer read-only connections for data systems. Add write access only when you have strict write policies and rollback.</li>
+<li>Add a pre-flight task to <code>checklist.yaml</code> to confirm each MCP server works, and write results to <code>run-log.md</code>.</li>
+<li>When MCP output is long, write it to a file and link it. Do not flood the chat.</li>
+</ul>
+<h3 id="golden-examples-especially-for-refactors">Golden examples (especially for refactors)</h3>
+<p>Golden examples work best when they are encoded into skills.</p>
+<p>Workflow:</p>
+<ol type="1">
+<li>Ask the agent to scan the repo and propose 10 to 20 candidate files that represent the diversity of patterns.</li>
+<li>You pick 3 to 5.</li>
+<li>Refactor those interactively, verify them, and lock the pattern.</li>
+<li>Turn the pattern into a skill and a checklist section.</li>
+</ol>
+<p>Now the long-running agent can replicate the pattern safely.</p>
+<h3 id="a-standard-overnight-refactor-recipe">A standard overnight refactor recipe</h3>
+<p>Pre-flight:</p>
+<ol type="1">
+<li>Make sure <code>main</code> is green, or capture current failures in <code>run-log.md</code>.</li>
+<li>Create a checkout for the run (worktree or separate clone).</li>
+<li>Use the repo scan method to select golden examples, then implement them interactively.</li>
+<li>Convert the pattern into a skill and reference it from <code>plan.md</code>.</li>
+</ol>
+<p>Kickoff:</p>
+<ol type="1">
+<li>Generate <code>checklist.yaml</code> with tasks that have real acceptance criteria.</li>
+<li>Open a draft PR early and let CI run continuously.</li>
+<li>Start the long run with clear rules about commits, verification, and logging.</li>
+</ol>
+<p>During the run:</p>
+<ol type="1">
+<li>Check in once early to confirm it is running the build-verify loop.</li>
+<li>Use the harness thinking view and steer when you see drift, retries, or unsafe changes.</li>
+<li>Keep the agent moving forward. Do not let it fight flakes for hours.</li>
+</ol>
+<p>Landing:</p>
+<ol type="1">
+<li>Run the full verification suite from scratch.</li>
+<li>Run agent-first review (<code>/review</code> in Codex or your review subagent).</li>
+<li>Do a human review by risk in the code review tool.</li>
+</ol>
+
+<section class="chapter" id="templates">
+  <span class="chapter-num">Chapter 12</span>
+  <h2>Templates</h2>
+  <div class="chapter-line"></div>
+</section>
+
+<p>Copy these into your repo. These files are the memory, observability, and self-evolution layer for long-running agents.</p>
+<p>This section has four copy-paste blocks:</p>
+<ul>
+<li>Kickoff prompt (glue that fills the files)</li>
+<li><code>plan.md</code> (blueprint and constraints)</li>
+<li><code>checklist.yaml</code> (work items and acceptance criteria)</li>
+<li><code>run-log.md</code> (decisions and evidence)</li>
+</ul>
+<p>The <code>plan.md</code> template below borrows ideas from OpenAI's ExecPlan approach for Codex. See <a href="https://developers.openai.com/cookbook/articles/codex_exec_plans/">Using PLANS.md for multi-hour problem solving</a>.</p>
+<h3 id="kickoff-prompt">Kickoff prompt</h3>
+<p>Paste this into your harness to start a long run. It forces the agent to fill in <code>plan.md</code>, <code>checklist.yaml</code>, and <code>run-log.md</code> at the repo root instead of inventing new structure.</p>
+<pre class="md"><code>You are going to run a long background job in this repo.
+
+Before writing code:
+1) Ask me clarifying questions until you can fill in `plan.md`, `checklist.yaml`, and `run-log.md` at the repo root. Follow the structure already in those files. Do not invent a new format.
+2) Create or update those three files at the repo root.
+3) Stop and wait for approval.
+
+After I approve:
+- Execute `checklist.yaml` until tasks reach terminal states.
+- Treat the build-verify loop as the source of truth. Propose the fast loop and the full suite.
+- Keep `checklist.yaml` updated as you work. Do not delete tasks. Append new tasks when discovered.
+- Record decisions and evidence in `run-log.md` with timestamps.
+- After compaction or restarts, reread `plan.md`, `checklist.yaml`, and `run-log.md` before continuing.
+- Keep diffs reviewable: small commits, reversible steps, milestone checkpoints.</code></pre>
+<h3 id="planmd"><code>plan.md</code></h3>
+<pre class="md"><code># Plan: &lt;project name&gt;
+
+Last updated: &lt;YYYY-MM-DD HH:MM&gt;
+
+This plan is a living document. Keep it self-contained. Assume a new person, or a fresh agent session, will restart from:
+- `plan.md` (this file)
+- `checklist.yaml` (execution state machine + acceptance criteria)
+- `run-log.md` (append-only ops log: decisions, evidence, failures, fixes)
+
+## Purpose / Big picture
+
+In 3 to 6 sentences:
+- Why this work matters
+- What changes for a user
+- How to see it working
+
+## Progress and logs
+
+- Progress is tracked in `checklist.yaml`. Keep it updated as you go.
+- Decisions, surprises, and evidence go in `run-log.md` with timestamps.
+
+## Context and orientation
+
+Explain the current state as if the reader knows nothing about this repo.
+
+- System overview:
+- Key files (repo-relative paths):
+  - `path/to/file`: &lt;why it matters&gt;
+- Glossary (define any non-obvious term you use):
+  - &lt;term&gt;: &lt;definition&gt;
+
+## Scope
+
+### Goal
+&lt;1 paragraph, concrete and testable&gt;
+
+### Non-goals
+- &lt;bullets&gt;
+
+### Acceptance criteria (behavior)
+- &lt;bullets that a human can verify&gt;
+
+## Constraints and invariants
+
+- Must not change:
+- Safety:
+- Compatibility:
+- Performance:
+
+## Plan of work (milestones)
+
+Write this as a short narrative. For each milestone, say what exists at the end that does not exist now, and how to prove it.
+
+1. Milestone 1: &lt;name&gt;
+   - Outcome:
+   - Proof:
+2. Milestone 2: &lt;name&gt;
+   - Outcome:
+   - Proof:
+
+## Implementation map
+
+Describe the concrete edits you expect.
+
+- Change:
+  - File:
+  - Location (function, module, class):
+  - What to change:
+- Add:
+  - File:
+  - What to add:
+
+Keep `checklist.yaml` aligned with this plan. If you discover new required work, add tasks. Do not delete tasks.
+
+## Verification
+
+- Fast loop (iteration):
+  - `...`
+- Full suite (milestones):
+  - `...`
+- Expected outputs:
+  - &lt;what &quot;green&quot; looks like&gt;
+- Evidence to capture in `run-log.md`:
+  - &lt;commands run, links, screenshots, perf numbers, query results&gt;
+
+## Rollout and rollback
+
+- Rollout steps:
+- Feature flags:
+- Backfills and migrations:
+- Rollback plan:
+
+## Idempotence and recovery
+
+- What can be rerun safely:
+- What can fail halfway:
+- How to retry safely:
+- How to clean up:
+
+## Interfaces and dependencies
+
+Be explicit about:
+- New APIs or contracts:
+- New dependencies:
+- Migrations and compatibility:
+
+## Skills and tools
+
+- Skills to use:
+  - &lt;skill name&gt;: &lt;why&gt;
+- MCP servers (if any):
+  - &lt;server&gt;: &lt;why&gt;
+
+## Golden examples
+
+- &lt;links to commits/files that define the pattern&gt;
+
+## Open questions
+
+- &lt;questions that block execution&gt;</code></pre>
+<h3 id="checklistyaml"><code>checklist.yaml</code></h3>
+<p>Agent checklist format I use in other repos.</p>
+<pre class="yaml"><code>summary:
+  last_updated: &quot;&lt;YYYY-MM-DD HH:MM&gt;&quot;
+  active_task_id: &quot;&quot;
+  status: &quot;not_started&quot;
+  blockers: []
+  next_actions: []
+  verification_loop:
+    fast: []
+    full: []
+
+instructions: |-
+  This `checklist.yaml` is the execution plan for the repo. It is the source of truth for what &quot;done&quot; means.
+
+  Agent workflow:
+  - Implement tasks until they reach a terminal state: `complete`, `failed`, or `archived_as_irrelevant`.
+  - Do not mark a task `complete` until every item in `acceptance_criteria` has been met and verified.
+  - Verify acceptance criteria with real evidence (commands/tests run, screenshots, API calls, queries).
+  - Record assumptions, decisions, and verification evidence in each task&#39;s `note`, and in `run-log.md`.
+  - If a task fails after multiple approaches, set status to `failed` and summarize what was tried and why it failed.
+  - Keep tasks updated as you work: `not_started` -&gt; `in_progress` -&gt; `complete` (or `failed` / `archived_as_irrelevant`).
+  - Add new granular tasks when new required work is discovered. Do not delete tasks. Archive if irrelevant.
+
+  Task schema:
+  - `task_id`: Stable unique identifier (string).
+  - `title`: Short summary (string).
+  - `description`: What to build and why (string; can be multiline).
+  - `acceptance_criteria`: Verifiable checklist items (list of strings).
+  - `implementation_notes`: Optional tips or constraints (string; optional).
+  - `status`: One of `not_started`, `in_progress`, `complete`, `failed`, `archived_as_irrelevant`.
+  - `note`: Freeform working log for the agent (string). Leave empty until there is something worth recording.
+
+guidelines:
+  - &quot;Do not change public APIs without updating callers.&quot;
+  - &quot;Do not add dependencies without justification.&quot;
+  - &quot;Prefer small, reversible steps and frequent verification.&quot;
+  - &quot;Do not commit secrets.&quot;
+
+tasks:
+  - task_id: T001
+    title: &quot;Establish baseline&quot;
+    description: &quot;Run the fast loop and full suite on main, record failures if any.&quot;
+    acceptance_criteria:
+      - &quot;Fast loop passes (or failures recorded in run-log.md).&quot;
+      - &quot;Full suite passes (or failures recorded in run-log.md).&quot;
+    implementation_notes: &quot;&quot;
+    status: not_started
+    note: &quot;&quot;
+
+  - task_id: T002
+    title: &quot;&lt;fill in&gt;&quot;
+    description: &quot;&lt;fill in&gt;&quot;
+    acceptance_criteria:
+      - &quot;&lt;fill in&gt;&quot;
+    implementation_notes: &quot;&quot;
+    status: not_started
+    note: &quot;&quot;</code></pre>
+<h3 id="run-logmd"><code>run-log.md</code></h3>
+<p>Append-only. Timestamp everything. Tag entries so you can scan it quickly.</p>
+<pre class="md"><code># Run log
+
+## Context
+- Repo:
+- Branch/worktree:
+- Start time:
+
+## Events (append-only)
+- &lt;YYYY-MM-DD HH:MM&gt; decision: ...
+- &lt;YYYY-MM-DD HH:MM&gt; evidence: ...
+- &lt;YYYY-MM-DD HH:MM&gt; failure: ...
+- &lt;YYYY-MM-DD HH:MM&gt; fix: ...
+- &lt;YYYY-MM-DD HH:MM&gt; note: ...
+
+## Follow-ups
+- Skills to extract:
+- Evals to add:
+- Agent guidelines to update (`AGENTS.md`):
+- Docs to update:
+- Tech debt spotted:</code></pre>
+
+<section class="chapter" id="execution">
+  <span class="chapter-num">Chapter 13</span>
+  <h2>Execution</h2>
+  <div class="chapter-line"></div>
+</section>
+
+<p>Once <code>plan.md</code> and <code>checklist.yaml</code> look good, execution should feel boring.</p>
+<p>Execution rules I use:</p>
+<ul>
+<li>Implement tasks until they reach a terminal state (<code>complete</code>, <code>failed</code>, or <code>archived_as_irrelevant</code>).</li>
+<li>Do not mark <code>complete</code> until acceptance criteria is met and verified.</li>
+<li>Make reasonable assumptions when blocked, then record them in task <code>note</code> fields.</li>
+<li>If a task fails, summarize approaches tried and evidence in <code>run-log.md</code> and in the task <code>note</code>.</li>
+<li>Capture evidence in task <code>note</code> fields and in <code>run-log.md</code>.</li>
+<li>When you see a repeatable pattern, extract a skill, update agent guidelines (<code>AGENTS.md</code>), and add a repo eval.</li>
+<li>Add new tasks when new work is discovered. Do not delete tasks.</li>
+<li>Keep <code>summary</code> in <code>checklist.yaml</code> updated so a human can see current status in 30 seconds.</li>
+</ul>
+<h3 id="a-default-execution-loop">A default execution loop</h3>
+
+<svg class="illustration illustration-wide" viewBox="0 0 700 200" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Execution loop steps">
+  <rect width="700" height="200" rx="16" fill="#12151b"/>
+
+  <!-- Step 1 -->
+  <rect x="20" y="40" width="80" height="80" rx="10" fill="#1e2330" stroke="#4af0c0" stroke-width="1"/>
+  <text x="60" y="72" text-anchor="middle" fill="#4af0c0" font-family="JetBrains Mono, monospace" font-size="18" font-weight="600">1</text>
+  <text x="60" y="98" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="8">Pick next</text>
+  <text x="60" y="110" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="8">task</text>
+  <path d="M108 80 L124 80" stroke="#2a3040" stroke-width="1.5"/>
+  <polygon points="124,76 124,84 132,80" fill="#4af0c0" opacity="0.4"/>
+
+  <!-- Step 2 -->
+  <rect x="138" y="40" width="80" height="80" rx="10" fill="#1e2330" stroke="#4a9cf0" stroke-width="1"/>
+  <text x="178" y="72" text-anchor="middle" fill="#4a9cf0" font-family="JetBrains Mono, monospace" font-size="18" font-weight="600">2</text>
+  <text x="178" y="98" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="8">Re-read</text>
+  <text x="178" y="110" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="8">plan + code</text>
+  <path d="M226 80 L242 80" stroke="#2a3040" stroke-width="1.5"/>
+  <polygon points="242,76 242,84 250,80" fill="#4a9cf0" opacity="0.4"/>
+
+  <!-- Step 3 -->
+  <rect x="256" y="40" width="80" height="80" rx="10" fill="#1e2330" stroke="#9b6ef0" stroke-width="1"/>
+  <text x="296" y="72" text-anchor="middle" fill="#9b6ef0" font-family="JetBrains Mono, monospace" font-size="18" font-weight="600">3</text>
+  <text x="296" y="98" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="8">Smallest</text>
+  <text x="296" y="110" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="8">change</text>
+  <path d="M344 80 L360 80" stroke="#2a3040" stroke-width="1.5"/>
+  <polygon points="360,76 360,84 368,80" fill="#9b6ef0" opacity="0.4"/>
+
+  <!-- Step 4 -->
+  <rect x="374" y="40" width="80" height="80" rx="10" fill="#1e2330" stroke="#f0b84a" stroke-width="1"/>
+  <text x="414" y="72" text-anchor="middle" fill="#f0b84a" font-family="JetBrains Mono, monospace" font-size="18" font-weight="600">4</text>
+  <text x="414" y="98" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="8">Verify</text>
+  <text x="414" y="110" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="8">(fast loop)</text>
+  <path d="M462 80 L478 80" stroke="#2a3040" stroke-width="1.5"/>
+  <polygon points="478,76 478,84 486,80" fill="#f0b84a" opacity="0.4"/>
+
+  <!-- Step 5 -->
+  <rect x="492" y="40" width="80" height="80" rx="10" fill="#1e2330" stroke="#f06478" stroke-width="1"/>
+  <text x="532" y="72" text-anchor="middle" fill="#f06478" font-family="JetBrains Mono, monospace" font-size="18" font-weight="600">5</text>
+  <text x="532" y="98" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="8">Commit</text>
+  <text x="532" y="110" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="8">checkpoint</text>
+  <path d="M580 80 L596 80" stroke="#2a3040" stroke-width="1.5"/>
+  <polygon points="596,76 596,84 604,80" fill="#f06478" opacity="0.4"/>
+
+  <!-- Step 6: Update & repeat (dashed) -->
+  <rect x="610" y="40" width="70" height="80" rx="10" fill="#1e2330" stroke="#4af0c0" stroke-width="1" stroke-dasharray="4 3"/>
+  <text x="645" y="74" text-anchor="middle" fill="#4af0c0" font-family="JetBrains Mono, monospace" font-size="22" font-weight="600">&#x21bb;</text>
+  <text x="645" y="98" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="8">Update</text>
+  <text x="645" y="110" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="8">&amp; repeat</text>
+
+  <!-- Loopback arrow: from bottom of step 6 → down → left → up to bottom of step 1 -->
+  <path d="M645 120 L645 150 Q645 165 630 165 L70 165 Q55 165 55 150 L55 125" stroke="#2a3040" stroke-width="1.5" stroke-dasharray="5 3" fill="none"/>
+  <!-- Arrowhead pointing up into step 1 -->
+  <polygon points="50,128 60,128 55,120" fill="#4af0c0" opacity="0.5"/>
+</svg>
+
+
+<p>This is the loop I want the agent to run for hours:</p>
+<ol type="1">
+<li>Pick the next <code>not_started</code> task in <code>checklist.yaml</code>.</li>
+<li>Re-read <code>plan.md</code> and the relevant code.</li>
+<li>Make the smallest change that moves the task forward.</li>
+<li>Run the fastest verification that can catch the likely failure.</li>
+<li>Commit a checkpoint.</li>
+<li>Update the task <code>note</code> with what changed and what was verified.</li>
+<li>Append any surprises, learnings, post-mortems from failures to <code>run-log.md</code>.</li>
+<li>Repeat.</li>
+</ol>
+<p>Milestones:</p>
+<ul>
+<li>Run the full verification suite before marking a big task <code>complete</code>.</li>
+<li>Keep a draft PR open so CI runs continuously.</li>
+</ul>
+
+<section class="chapter" id="compaction">
+  <span class="chapter-num">Chapter 14</span>
+  <h2>Compaction</h2>
+  <div class="chapter-line"></div>
+</section>
+
+<p>Every long run eventually hits the context window.</p>
+<p>Harnesses handle this with compaction: they summarize history, prune tool output, and keep going. Done well, it feels invisible. Done poorly, the agent forgets constraints and starts making reasonable, wrong decisions.</p>
+<p>How to make compaction a non-issue:</p>
+<ul>
+<li>Put critical decisions in <code>plan.md</code>.</li>
+<li>Put current truth in <code>checklist.yaml</code> (status, notes, acceptance criteria).</li>
+<li>Put surprises and evidence in <code>run-log.md</code>.</li>
+<li>Tell the agent to reread these files after compaction and at the start of each new "shift".</li>
+<li>Prefer writing long tool output to files over pasting into chat.</li>
+</ul>
+<p>If a run goes sideways, do not salvage it for hours. Fork the session and restart from a clean checkpoint.</p>
+
+<section class="chapter" id="steering">
+  <span class="chapter-num">Chapter 15</span>
+  <h2>Steering</h2>
+  <div class="chapter-line"></div>
+</section>
+
+<p>Steering is how you correct the agent mid-run so the next cycle adapts fast.</p>
+<p>It works best when you have observability:</p>
+<ul>
+<li>thinking blocks/reasoning traces for real-time observability</li>
+<li><code>checklist.yaml</code> tells you what it thinks it is doing right now.</li>
+<li><code>run-log.md</code> tells you what went wrong and what it learned.</li>
+<li>The harness thinking view (for example, Codex CLI) makes steering faster.</li>
+</ul>
+<p>My cadence:</p>
+<ul>
+<li>Check in a few minutes after the run starts and intermittently throughout the day.</li>
+<li>Check when it hits failures and recovers.
+<ul>
+<li>Use hooks and skills to notify you.</li>
+</ul></li>
+<li>Check before you go offline for the night.</li>
+</ul>
+<p>What to look for:</p>
+<ul>
+<li>Is it running the verification loop?</li>
+<li>Is it making reversible steps?</li>
+<li>Is it stuck in a loop?</li>
+<li>Is it changing the right files?</li>
+<li>Is it drifting from the plan?</li>
+</ul>
+<p>When it drifts, steer quickly:</p>
+<ul>
+<li>Restate the constraint it violated.</li>
+<li>Offer hints or direction when useful.</li>
+<li>Narrow the next action to the smallest safe step.</li>
+<li>Tell it what evidence to produce before continuing.</li>
+</ul>
+<p>High-leverage steer messages (copy/paste):</p>
+<ul>
+<li>"Stop. You are changing files outside scope. Re-read <code>plan.md</code>, then continue with the next checklist task only."</li>
+<li>"You are stuck in retries. Write a short diagnosis in <code>run-log.md</code>, then change approach."</li>
+<li>"Commit a checkpoint now. Then run the fast loop and paste only the summary."</li>
+<li>"Do the smallest safe step next. No refactors. One file. One test. One commit."</li>
+</ul>
+
+<section class="chapter" id="review">
+  <span class="chapter-num">Chapter 16</span>
+  <h2>Review</h2>
+  <div class="chapter-line"></div>
+</section>
+
+<p>Review is where long-running work becomes shippable.</p>
+<h3 id="agent-first-review">Agent-first review</h3>
+<p>Start by asking an agent to review the diff against your acceptance criteria.</p>
+<p>In Codex, use <code>/review</code> or <code>codex review</code> with xhigh effort. If you are not on Codex, create a review skill or a review subagent that always does the same workflow.</p>
+<p>Example review prompt:</p>
+<pre class="md"><code>Review this branch against `main`.
+
+Output:
+- A risk-ranked list of files and changes (high, medium, low)
+- Bugs and correctness issues
+- Security issues (auth, permissions, secrets, injection risks)
+- Concurrency, retries, and idempotency risks
+- Consistency with repo conventions (patterns, style, architecture)
+- Missing tests and weak verification
+- Migration or rollback risks
+- Performance and resource risks
+- Suggested follow-up tasks to add to checklist.yaml
+
+Then propose a minimal patch set to fix the top issues.</code></pre>
+<h3 id="human-review-by-risk">Human review by risk</h3>
+<p>After agent review, do a human pass that is biased toward high blast radius areas:</p>
+<ul>
+<li>Auth and permissions</li>
+<li>Money movement, ledgering paths</li>
+<li>Core domain business logic, reviewed by flow and invariants</li>
+<li>Data migrations</li>
+<li>Concurrency and retries</li>
+<li>Public APIs</li>
+</ul>
+<h3 id="use-ci-as-an-active-loop">Use CI as an active loop</h3>
+<p>Open a draft PR early and let CI run repeatedly while the agent continues.</p>
+<p>A strong pattern:</p>
+<ul>
+<li>Agent runs targeted subsets locally for speed.</li>
+<li>CI runs the full suite in the background.</li>
+<li>The agent fixes failures as they appear.</li>
+</ul>
+<p>This avoids a giant "everything fails at the end" moment and keeps your local machine responsive.</p>
+<h3 id="land-it-safely">Land it safely</h3>
+<p>For big refactors and migrations:</p>
+<ul>
+<li>Ship behind a flag when you can.</li>
+<li>Prefer incremental rollouts.</li>
+<li>Add rollback steps to the plan.</li>
+<li>Prefer additive migrations first, destructive migrations later.</li>
+</ul>
+
+<section class="chapter" id="self-evolution">
+  <span class="chapter-num">Chapter 17</span>
+  <h2>Self-evolution</h2>
+  <div class="chapter-line"></div>
+</section>
+
+<p>Every long run produces edge cases. Turn them into permanent leverage.</p>
+<p>After the PR lands:</p>
+<ul>
+<li>Ask an agent to read <code>run-log.md</code> and <code>checklist.yaml</code> and propose:
+<ul>
+<li>New skills</li>
+<li>Agent guideline updates (<code>AGENTS.md</code>)</li>
+<li>Repo eval tasks</li>
+</ul>
+</li>
+<li>Add the best ones immediately. Treat this like adding tests after a bug.</li>
+<li>Keep the follow-ups list in <code>run-log.md</code> current so the next run starts stronger.</li>
+</ul>
+
+<svg class="illustration illustration-wide" viewBox="0 0 700 220" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Self-evolution cycle">
+  <rect width="700" height="220" rx="16" fill="#12151b"/>
+  <text x="350" y="20" text-anchor="middle" fill="#5c6078" font-family="JetBrains Mono, monospace" font-size="9" letter-spacing="0.2em">SELF-EVOLUTION CYCLE</text>
+
+  <!-- Loopback path: right of NEXT RUN → up → over → down → left of SHIP PR -->
+  <path d="M660 108 L672 108 Q684 108 684 92 L684 46 Q684 32 672 32 L28 32 Q16 32 16 46 L16 92 Q16 108 28 108 L40 108" stroke="#2a3040" stroke-width="2" stroke-dasharray="6 4" fill="none"/>
+  <rect x="270" y="29" width="160" height="14" rx="3" fill="#12151b"/>
+  <text x="350" y="36" text-anchor="middle" fill="#5c6078" font-family="JetBrains Mono, monospace" font-size="9" letter-spacing="0.15em">EVERY RUN IMPROVES</text>
+
+  <!-- Connection arrows (5 solid colored arrows between 6 boxes) -->
+  <path d="M130 108 L148 108" stroke="#4af0c0" stroke-width="2"/>
+  <polygon points="145,102 145,114 156,108" fill="#4af0c0" opacity="0.8"/>
+  <path d="M240 108 L258 108" stroke="#4a9cf0" stroke-width="2"/>
+  <polygon points="255,102 255,114 266,108" fill="#4a9cf0" opacity="0.8"/>
+  <path d="M350 108 L368 108" stroke="#f0b84a" stroke-width="2"/>
+  <polygon points="365,102 365,114 376,108" fill="#f0b84a" opacity="0.8"/>
+  <path d="M460 108 L478 108" stroke="#f06478" stroke-width="2"/>
+  <polygon points="475,102 475,114 486,108" fill="#f06478" opacity="0.8"/>
+  <path d="M570 108 L588 108" stroke="#9b6ef0" stroke-width="2"/>
+  <polygon points="585,102 585,114 596,108" fill="#9b6ef0" opacity="0.8"/>
+
+  <!-- Box 1: SHIP PR — x=40, w=90, center=85 -->
+  <rect x="40" y="76" width="90" height="64" rx="10" fill="#1e2330" stroke="#4af0c0" stroke-width="1.5"/>
+  <text x="85" y="104" text-anchor="middle" fill="#4af0c0" font-family="JetBrains Mono, monospace" font-size="10" letter-spacing="0.08em">SHIP PR</text>
+  <text x="85" y="123" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="8">Land the work</text>
+
+  <!-- Box 2: MINE LOG — x=160, w=80, center=200 -->
+  <rect x="160" y="76" width="80" height="64" rx="10" fill="#1e2330" stroke="#4a9cf0" stroke-width="1.5"/>
+  <text x="200" y="100" text-anchor="middle" fill="#4a9cf0" font-family="JetBrains Mono, monospace" font-size="9" letter-spacing="0.08em">MINE</text>
+  <text x="200" y="114" text-anchor="middle" fill="#4a9cf0" font-family="JetBrains Mono, monospace" font-size="9" letter-spacing="0.08em">RUN-LOG</text>
+  <text x="200" y="130" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="8">Extract patterns</text>
+
+  <!-- Box 3: EXTRACT SKILLS — x=270, w=80, center=310 -->
+  <rect x="270" y="76" width="80" height="64" rx="10" fill="#1e2330" stroke="#f0b84a" stroke-width="1.5"/>
+  <text x="310" y="100" text-anchor="middle" fill="#f0b84a" font-family="JetBrains Mono, monospace" font-size="9" letter-spacing="0.08em">EXTRACT</text>
+  <text x="310" y="114" text-anchor="middle" fill="#f0b84a" font-family="JetBrains Mono, monospace" font-size="9" letter-spacing="0.08em">SKILLS</text>
+  <text x="310" y="130" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="8">Codify workflows</text>
+
+  <!-- Box 4: UPDATE AGENTS.MD — x=380, w=80, center=420 -->
+  <rect x="380" y="76" width="80" height="64" rx="10" fill="#1e2330" stroke="#f06478" stroke-width="1.5"/>
+  <text x="420" y="100" text-anchor="middle" fill="#f06478" font-family="JetBrains Mono, monospace" font-size="9" letter-spacing="0.08em">UPDATE</text>
+  <text x="420" y="114" text-anchor="middle" fill="#f06478" font-family="JetBrains Mono, monospace" font-size="9" letter-spacing="0.08em">AGENTS.MD</text>
+  <text x="420" y="130" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="8">Refine guidelines</text>
+
+  <!-- Box 5: ADD EVALS — x=490, w=80, center=530 -->
+  <rect x="490" y="76" width="80" height="64" rx="10" fill="#1e2330" stroke="#9b6ef0" stroke-width="1.5"/>
+  <text x="530" y="100" text-anchor="middle" fill="#9b6ef0" font-family="JetBrains Mono, monospace" font-size="9" letter-spacing="0.08em">ADD</text>
+  <text x="530" y="114" text-anchor="middle" fill="#9b6ef0" font-family="JetBrains Mono, monospace" font-size="9" letter-spacing="0.08em">EVALS</text>
+  <text x="530" y="130" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="8">Measure quality</text>
+
+  <!-- Box 6: NEXT RUN — x=600, w=60, center=630, dashed border (meta-step) -->
+  <rect x="600" y="76" width="60" height="64" rx="10" fill="#1e2330" stroke="#4af0c0" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <text x="630" y="100" text-anchor="middle" fill="#4af0c0" font-family="JetBrains Mono, monospace" font-size="9" letter-spacing="0.08em">NEXT</text>
+  <text x="630" y="114" text-anchor="middle" fill="#4af0c0" font-family="JetBrains Mono, monospace" font-size="9" letter-spacing="0.08em">RUN</text>
+  <text x="630" y="130" text-anchor="middle" fill="#8b8fa3" font-family="DM Sans, sans-serif" font-size="8">Start stronger</text>
+
+  <!-- Bottom labels -->
+  <circle cx="85" cy="160" r="3" fill="#4af0c0" opacity="0.3"/>
+  <circle cx="200" cy="160" r="3" fill="#4a9cf0" opacity="0.3"/>
+  <circle cx="310" cy="160" r="3" fill="#f0b84a" opacity="0.3"/>
+  <circle cx="420" cy="160" r="3" fill="#f06478" opacity="0.3"/>
+  <circle cx="530" cy="160" r="3" fill="#9b6ef0" opacity="0.3"/>
+  <circle cx="630" cy="160" r="3" fill="#4af0c0" opacity="0.3"/>
+  <text x="85" y="178" text-anchor="middle" fill="#5c6078" font-family="DM Sans, sans-serif" font-size="8">Deliverable</text>
+  <text x="200" y="178" text-anchor="middle" fill="#5c6078" font-family="DM Sans, sans-serif" font-size="8">Retrospective</text>
+  <text x="310" y="178" text-anchor="middle" fill="#5c6078" font-family="DM Sans, sans-serif" font-size="8">Automation</text>
+  <text x="420" y="178" text-anchor="middle" fill="#5c6078" font-family="DM Sans, sans-serif" font-size="8">Guardrails</text>
+  <text x="530" y="178" text-anchor="middle" fill="#5c6078" font-family="DM Sans, sans-serif" font-size="8">Regression</text>
+  <text x="630" y="178" text-anchor="middle" fill="#5c6078" font-family="DM Sans, sans-serif" font-size="8">Compounding</text>
+</svg>
+
+<div class="sep"></div>
+<section class="part" id="scaling-up">
+  <span class="chapter-num">Section</span>
+  <h2>Scaling up</h2>
+  <div class="chapter-line"></div>
+</section>
+
+<section class="chapter chapter-first" id="parallel-task-management">
+  <span class="chapter-num">Chapter 18</span>
+  <h2>Parallel task management</h2>
+  <div class="chapter-line"></div>
+</section>
+
+<p>Parallel agents are a force multiplier when the work streams are independent.</p>
+<h3 id="use-separate-checkouts-not-chaos">Use separate checkouts, not chaos</h3>
+<p>Give each agent its own checkout.</p>
+<p>Two common patterns:</p>
+<p>Worktrees:</p>
+<pre class="bash"><code>git worktree add ../repo-agent-refactor -b agent/refactor
+git worktree add ../repo-agent-migration -b agent/migration</code></pre>
+<p>Separate clones (cleaner isolation, slower setup):</p>
+<pre class="bash"><code>git clone &quot;$(pwd)&quot; ../repo-agent-review
+git clone &quot;$(pwd)&quot; ../repo-agent-perf</code></pre>
+<p>Rules that keep you sane:</p>
+<ul>
+<li>One agent per checkout</li>
+<li>One goal per agent</li>
+<li>One PR per checkout</li>
+</ul>
+<h3 id="what-not-to-parallelize">What not to parallelize</h3>
+<p>Avoid parallelizing interdependent work.</p>
+<p>When tasks depend on each other, you get:</p>
+<ul>
+<li>Merge conflicts</li>
+<li>Conflicting design decisions</li>
+<li>Two agents fixing the same test failures in different ways</li>
+</ul>
+<p>The hidden cost is lost learning. During execution, the agent learns repo quirks, test behavior, and edge cases. That context is hard to propagate across parallel runs. If the work is coupled, run it sequentially or force the learning into shared memory files.</p>
+<p>Sequential wins here. Let one agent carry the context forward.</p>
+<h3 id="checkpointing-via-git">Checkpointing via git</h3>
+<p>Ask the agent to commit early and often.</p>
+<p>What you get:</p>
+<ul>
+<li>A rollback path if it gets weird</li>
+<li>Easier review for big diffs</li>
+<li>A commit story you can scan quickly</li>
+</ul>
+<h3 id="skill-clean-commit-narrative-rebuild">Skill: clean-commit (narrative rebuild)</h3>
+<p>This comes up constantly in long-running work. Agents can land the right end state with a messy branch. "Clean-commit" is the workflow I use to rebuild the same end state with a commit history you can review and ship.</p>
+<p>If the end state is correct but the branch is a mess, rebuild it with a clean commit storyline.</p>
+<p>Workflow:</p>
+<ol type="1">
+<li>Validate the source branch (no uncommitted changes, up to date with <code>main</code>).</li>
+<li>Study the full diff to understand the intended end state.</li>
+<li>Create a new branch off <code>main</code>.</li>
+<li>Plan a commit storyline (self-contained steps, tutorial-style).</li>
+<li>Reimplement commit-by-commit on the clean branch.</li>
+<li>Verify the final end state matches the source branch and run the full checks.</li>
+</ol>
+<p>Rules:</p>
+<ul>
+<li>The end state must be identical to the original branch.</li>
+<li>Do not include "Generated with ..." or co-author trailers in commits.</li>
+</ul>
+<h3 id="tools-that-help">Tools that help</h3>
+<ul>
+<li><a href="https://github.com/tobi/try">try</a> is a handy CLI for organizing experiments and creating dated worktrees.
+<ul>
+<li>Install: <code>brew install try-cli</code> (or <code>gem install try-cli</code>)</li>
+<li>Enable shell integration: <code>eval "$(try init)"</code> (put this in your <code>.zshrc</code>)</li>
+<li>Create a worktree from the current repo: <code>try . agent-refactor</code></li>
+</ul></li>
+<li><a href="https://www.conductor.build/">Conductor</a> is a UI for coordinating parallel tasks and agent runs.</li>
+</ul>
+<p>Use whatever keeps your operating surface simple.</p>
+
+<section class="chapter" id="running-this-in-a-team">
+  <span class="chapter-num">Chapter 19</span>
+  <h2>Running this in a team</h2>
+  <div class="chapter-line"></div>
+</section>
+
+<p>Long-running agents work best when the team agrees on a few defaults.</p>
+<ul>
+<li>Standardize the three memory files across repos (<code>plan.md</code>, <code>checklist.yaml</code>, <code>run-log.md</code>).</li>
+<li>Standardize your safety baseline (sandbox by default, "yolo" only in isolated environments).</li>
+<li>Build a small shared skill library for your stack (CI triage, migrations, releases, clean-commit, review).</li>
+<li>Treat golden examples as artifacts. Turn them into skills, not tribal knowledge.</li>
+<li>Make self-evolution the habit: after each run, extract skills, update agent guidelines (<code>AGENTS.md</code>), and add repo evals.</li>
+<li>Use agent-first review as policy. Humans do the final high-risk pass.</li>
+</ul>
+<p>If you do not standardize, every long run becomes a bespoke ops problem.</p>
+
+<div class="sep"></div>
+<section class="part" id="troubleshooting-and-improvement">
+  <span class="chapter-num">Section</span>
+  <h2>Troubleshooting and improvement</h2>
+  <div class="chapter-line"></div>
+</section>
+
+<section class="chapter chapter-first" id="common-failure-modes-and-fixes">
+  <span class="chapter-num">Chapter 20</span>
+  <h2>Common failure modes (and fixes)</h2>
+  <div class="chapter-line"></div>
+</section>
+
+<p>These are the traps that waste the most time. Read this once, then treat it as a reference.</p>
+
+<div class="diagnosis">
+  <div class="diagnosis-header"><span class="tag tag-rose">01</span> No objective verification</div>
+  <div class="diagnosis-body">
+    <div class="diagnosis-section">
+      <div class="diagnosis-label symptom">Symptoms</div>
+      <ul>
+<li>The agent keeps "making progress" but you cannot prove it</li>
+<li>You only learn it broke something at the end</li>
+</ul>
+    </div>
+    <div class="diagnosis-section">
+      <div class="diagnosis-label fix">Fix</div>
+      <ul>
+<li>Make "done" measurable. Tests, lint, typecheck, CI, screenshots, queries.</li>
+<li>If the repo does not have a verification loop, build that first.</li>
+</ul>
+    </div>
+  </div>
+</div>
+
+<div class="diagnosis">
+  <div class="diagnosis-header"><span class="tag tag-rose">02</span> Flaky or slow verification loops</div>
+  <div class="diagnosis-body">
+    <div class="diagnosis-section">
+      <div class="diagnosis-label symptom">Symptoms</div>
+      <ul>
+<li>The agent keeps retrying tests</li>
+<li>It takes 30 minutes to learn one thing</li>
+</ul>
+    </div>
+    <div class="diagnosis-section">
+      <div class="diagnosis-label fix">Fix</div>
+      <ul>
+<li>Create a fast loop for iteration, then run the full suite at milestones.</li>
+<li>Run a targeted subset of tests using pattern matching.
+<ul>
+<li>Example (Gradle): <code>./gradlew :app:test --tests 'com.yourco.payments.*'</code></li>
+<li>Example (Gradle single test): <code>./gradlew :app:test --tests '*BillingServiceTest'</code></li>
+</ul></li>
+<li>Prefer a persistent test environment when setup time is the bottleneck.
+<ul>
+<li>Long-running local DB containers</li>
+<li>Reused service instances in a dev namespace</li>
+<li>Cached build artifacts and dependencies</li>
+</ul></li>
+<li>Watch for disk and memory creep on long runs.
+<ul>
+<li>Keep an eye on <code>btop</code> or <code>htop</code></li>
+<li>Write a small cleanup skill if your test suite drops gigabytes of artifacts (<code>tmp/</code>, <code>logs/</code>, browser profiles, build caches)</li>
+<li>If Docker state creeps, restart containers. Drop volumes only if you can recreate the data safely.</li>
+</ul></li>
+<li>Quarantine flakes. Make them someone's problem, or the agent will burn hours.</li>
+</ul>
+    </div>
+  </div>
+</div>
+
+<div class="diagnosis">
+  <div class="diagnosis-header"><span class="tag tag-rose">03</span> Tool output floods the context</div>
+  <div class="diagnosis-body">
+    <div class="diagnosis-section">
+      <div class="diagnosis-label symptom">Symptoms</div>
+      <ul>
+<li>The agent pastes huge logs into chat</li>
+<li>Compaction triggers constantly and quality drops</li>
+</ul>
+    </div>
+    <div class="diagnosis-section">
+      <div class="diagnosis-label fix">Fix</div>
+      <ul>
+<li>Write long outputs to files (<code>logs/</code>, <code>tmp/</code>, <code>artifacts/</code>) and reference them.</li>
+<li>Teach the agent to summarize, not paste.</li>
+</ul>
+    </div>
+  </div>
+</div>
+
+<div class="diagnosis">
+  <div class="diagnosis-header"><span class="tag tag-rose">04</span> Context drift after compaction</div>
+  <div class="diagnosis-body">
+    <div class="diagnosis-section">
+      <div class="diagnosis-label symptom">Symptoms</div>
+      <ul>
+<li>It forgets a constraint and starts changing forbidden areas</li>
+<li>It redoes work it already did</li>
+</ul>
+    </div>
+    <div class="diagnosis-section">
+      <div class="diagnosis-label fix">Fix</div>
+      <ul>
+<li>Use <code>plan.md</code>, <code>checklist.yaml</code>, and <code>run-log.md</code>.</li>
+<li>Make rereading those files part of the execution loop, especially after compaction.</li>
+</ul>
+    </div>
+  </div>
+</div>
+
+<div class="diagnosis">
+  <div class="diagnosis-header"><span class="tag tag-rose">05</span> Infinite loops and false progress</div>
+  <div class="diagnosis-body">
+    <div class="diagnosis-section">
+      <div class="diagnosis-label symptom">Symptoms</div>
+      <ul>
+<li>It keeps trying the same fix</li>
+<li>It bounces between two approaches</li>
+</ul>
+    </div>
+    <div class="diagnosis-section">
+      <div class="diagnosis-label fix">Fix</div>
+      <ul>
+<li>Add a loop breaker rule: after N failed attempts, stop and change strategy.</li>
+<li>Force a short diagnosis before continuing.</li>
+<li>If your harness supports stop hooks, use them to prevent "give up" behavior.</li>
+</ul>
+    </div>
+  </div>
+</div>
+
+<div class="diagnosis">
+  <div class="diagnosis-header"><span class="tag tag-rose">06</span> Oversized diffs</div>
+  <div class="diagnosis-body">
+    <div class="diagnosis-section">
+      <div class="diagnosis-label symptom">Symptoms</div>
+      <ul>
+<li>One PR has everything</li>
+<li>Review is impossible</li>
+</ul>
+    </div>
+    <div class="diagnosis-section">
+      <div class="diagnosis-label fix">Fix</div>
+      <ul>
+<li>Commit checkpoints early and often.</li>
+<li>Prefer milestone commits (mechanical refactor first, behavior changes later) or stacked PRs</li>
+<li>If the end state is right but the commit history is messy, rebuild the branch with a clean narrative history.</li>
+</ul>
+    </div>
+  </div>
+</div>
+
+<section class="chapter" id="observability">
+  <span class="chapter-num">Chapter 21</span>
+  <h2>Observability</h2>
+  <div class="chapter-line"></div>
+</section>
+
+<p>Long runs fail quietly when you cannot see what is happening.</p>
+<p>Make the run observable:</p>
+<ul>
+<li><code>checklist.yaml</code> is your status page. It should answer: what is active, what is next, what is blocked.</li>
+<li><code>run-log.md</code> is your audit trail. It should answer: what changed, what was verified, what went wrong, what got fixed.</li>
+<li>CI is your external truth. It should run continuously and catch drift early.</li>
+<li>Your harness tool trace (and thinking blocks, if you have them) is real-time visibility. Use it to steer while the run is still in motion.</li>
+</ul>
+<p>Two rules that keep it sane:</p>
+<ul>
+<li>Write evidence to disk. Link it. Do not paste it into chat.</li>
+<li>Timestamp decisions and surprises as they happen. If it is not logged, it did not happen.</li>
+</ul>
+<p>For the post-run loop, see <a href="#self-evolution">Self-evolution</a>.</p>
+
+<div class="sep"></div>
+<section class="chapter" id="conclusion">
+  <span class="chapter-num">Chapter 22</span>
+  <h2>Conclusion</h2>
+  <div class="chapter-line"></div>
+</section>
+
+<p>Long-running agents change the shape of engineering work. You spend less time on mechanical execution. You spend more time on direction, constraints, and review.</p>
+<p>The dream output is a PR you can ship: green CI, a reviewable diff, and a <code>run-log.md</code> that explains what happened with links to evidence. Mine the run log for repeatable workflows, then turn them into skills.</p>
+<p>You get there with boring discipline:</p>
+<ul>
+<li>Define "done" up front in <code>checklist.yaml</code>, with acceptance criteria the agent can verify.</li>
+<li>Make the build-verify loop non-negotiable. Fast loop constantly. Full suite at milestones. Keep CI running in the background, continuously polled by the agent.</li>
+<li>Keep durable memory outside the chat. <code>plan.md</code> is the blueprint. <code>checklist.yaml</code> is current status and "done". <code>run-log.md</code> is decisions, evidence, and an audit trail. Your agent should refer to them across compaction and restarts.</li>
+<li>Make the run observable. You should be able to answer "what is it doing", "what changed", and "what is verified" in 60 seconds using <code>checklist.yaml</code>, <code>run-log.md</code>, and CI.</li>
+<li>Commit checkpoints. Prefer reversible steps. Keep diffs reviewable.</li>
+<li>Pick your safety mode before you start. Use constrained allowlists on your real machine. Use full autonomy only on something isolated and disposable.</li>
+</ul>
+<p>Models, pricing, and limits will keep moving. Build a repeatable system from first principles: the agent makes a change, runs tools to verify, records evidence, and repeats. Keep the run observable so you can direct it when needed. If that loop is solid, switching models is a routing decision. Your process stays the same.</p>
+<p>A good run feels calm. The checklist stays accurate. The agent keeps producing evidence. Your interventions are short and early. Landing the PR feels routine.</p>
+
+<div class="sep"></div>
+<section class="chapter" id="glossary">
+  <span class="chapter-num">Chapter 23</span>
+  <h2>Glossary</h2>
+  <div class="chapter-line"></div>
+</section>
+
+<div class="glossary-grid">
+  <div class="glossary-item"><div class="glossary-term">Harness</div><div class="glossary-def">the runner around the model (tools, permissions, sessions, compaction, UI).</div></div>
+  <div class="glossary-item"><div class="glossary-term">Build-verify loop</div><div class="glossary-def">iterative cycle where the agent generates an output, tests or evaluates it against defined criteria, and refines it until it meets the desired goal</div></div>
+  <div class="glossary-item"><div class="glossary-term">Compaction</div><div class="glossary-def">summarizing and pruning old context so the run can continue past the context window.</div></div>
+  <div class="glossary-item"><div class="glossary-term">Golden examples</div><div class="glossary-def">a small, human-verified slice that becomes the pattern for a large refactor.</div></div>
+  <div class="glossary-item"><div class="glossary-term">Worktree</div><div class="glossary-def">a separate checkout of the same git repo so each agent works in isolation.</div></div>
+  <div class="glossary-item"><div class="glossary-term">Steering</div><div class="glossary-def">corrective instructions mid-run to prevent drift and wasted work.</div></div>
+  <div class="glossary-item"><div class="glossary-term">Skills</div><div class="glossary-def">reusable procedures that teach the agent how to work in your environment.</div></div>
+  <div class="glossary-item"><div class="glossary-term">MCP</div><div class="glossary-def">a standard way to connect agents to external tools and data sources.</div></div>
+  <div class="glossary-item"><div class="glossary-term">Ralph loop</div><div class="glossary-def">a "loop-even-if-you-want-to-stop" pattern primarily used with Claude Code.</div></div>
+  <div class="glossary-item"><div class="glossary-term">Stacked PRs</div><div class="glossary-def">a chain of small PRs that build on each other so review stays tractable.</div></div>
+</div>
+
+<div class="sep"></div>
+<section class="chapter" id="references">
+  <span class="chapter-num">Chapter 24</span>
+  <h2>References</h2>
+  <div class="chapter-line"></div>
+</section>
+
+<ul>
+<li>Cursor: <a href="https://cursor.com/blog/scaling-agents">Scaling long-running autonomous coding</a></li>
+<li>Cursor: <a href="https://cursor.com/blog/long-running-agents">Long-running agents</a></li>
+<li>Armin Ronacher: <a href="https://lucumr.pocoo.org/2025/7/3/tools/">Tools: Code Is All You Need</a></li>
+<li>Mario Zechner: <a href="https://mariozechner.at/posts/2025-11-02-what-if-you-dont-need-mcp/">What if you don't need MCP at all?</a></li>
+<li>Cloudflare: <a href="https://blog.cloudflare.com/code-mode-mcp/">Code Mode: give agents an entire API in 1,000 tokens</a></li>
+<li>OpenAI: <a href="https://developers.openai.com/blog/skills-shell-tips/">Skills and shell tips</a></li>
+<li>OpenAI: <a href="https://help.openai.com/en/articles/11096431-openai-codex-cli-getting-started">Codex CLI getting started</a></li>
+<li>OpenAI: <a href="https://help.openai.com/en/articles/11097431-codex-in-chatgpt">Codex in ChatGPT (usage limits)</a></li>
+<li>OpenAI: <a href="https://openai.com/api/pricing/">API pricing</a></li>
+<li>Anthropic: <a href="https://www.anthropic.com/pricing">Pricing</a></li>
+<li>Anthropic: <a href="https://www.anthropic.com/claude/opus">Claude Opus 4.6</a></li>
+<li>Anthropic: <a href="https://docs.anthropic.com/en/docs/claude-code/hooks">Claude Code hooks</a></li>
+<li>Anthropic: <a href="https://claude.com/docs/claude-code/plugins#ralph-wiggum">Claude Code plugins (Ralph Wiggum)</a></li>
+<li>Anthropic: <a href="https://support.anthropic.com/en/articles/9797557-usage-limit-best-practices">Usage limit best practices</a></li>
+<li>Moonshot (Kimi): <a href="https://www.kimi.com/blog/kimi-k2-5.html">Kimi K2.5</a></li>
+<li>Moonshot (Kimi): <a href="https://platform.moonshot.cn/docs/pricing/chat">Model pricing</a></li>
+<li>Z.ai (GLM): <a href="https://docs.z.ai/guides/llm">LLM guide</a></li>
+<li>Z.ai (GLM): <a href="https://docs.z.ai/guides/overview/pricing.md">Pricing</a></li>
+<li>MiniMax: <a href="https://www.minimax.io/news/minimax-m25">MiniMax M2.5</a></li>
+<li>DeepWiki MCP: <a href="https://docs.devin.ai/work-with-devin/deepwiki-mcp">Docs</a></li>
+<li>Agent Skills: <a href="https://agentskills.io/home">Standard</a></li>
+<li>OpenCode: <a href="https://opencode.ai/docs/">Docs</a></li>
+<li>OpenCode Zen: <a href="https://opencode.ai/docs/zen/">Docs</a></li>
+<li>Pi: <a href="https://github.com/mariozechner/pi">Repo</a></li>
+<li>OpenClaw: <a href="https://github.com/openclaw/openclaw">Repo</a></li>
+<li>OpenRouter: <a href="https://openrouter.ai/">Router + model catalog</a></li>
+<li>Benchmarks: <a href="https://www.swebench.com/">SWE-bench</a> and <a href="https://www.tbench.ai/">TerminalBench</a></li>
+<li>Chrome DevTools MCP: <a href="https://github.com/ChromeDevTools/chrome-devtools-mcp">Repo</a></li>
+<li>Playwright MCP: <a href="https://github.com/microsoft/playwright-mcp">Repo</a></li>
+<li>Playwriter: <a href="https://github.com/remorses/playwriter">Repo</a></li>
+</ul>
+
+<footer class="footer">
+  <div class="footer-line"></div>
+  Long-Running Agents Playbook &middot; By Nayeem Zen
+</footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script>
+  window.addEventListener('DOMContentLoaded', () => {
+    if (window.hljs) {
+      window.hljs.highlightAll();
+    }
+  });
+</script>
+
+</body>
+</html>
