@@ -61,10 +61,11 @@ body {
 }
 .cover::before {
   content: ''; position: absolute; inset: 0;
-  background:
-    radial-gradient(ellipse 80% 60% at 50% 40%, rgba(74,240,192,.06) 0%, transparent 70%),
-    radial-gradient(ellipse 60% 50% at 20% 80%, rgba(74,156,240,.04) 0%, transparent 60%),
-    radial-gradient(ellipse 50% 40% at 80% 20%, rgba(155,110,240,.04) 0%, transparent 60%);
+  background: linear-gradient(180deg,
+    rgba(74, 156, 240, 0.06) 0%,
+    rgba(155, 110, 240, 0.04) 35%,
+    transparent 70%
+  );
   pointer-events: none;
 }
 .cover-grid {
@@ -73,7 +74,6 @@ body {
     linear-gradient(rgba(255,255,255,.02) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255,255,255,.02) 1px, transparent 1px);
   background-size: 60px 60px;
-  mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black 20%, transparent 80%);
   pointer-events: none;
 }
 .cover-label {
@@ -2310,7 +2310,7 @@ git clone &quot;$(pwd)&quot; ../repo-agent-perf</code></pre>
 
 <div class="glossary-grid">
   <div class="glossary-item"><div class="glossary-term">Harness</div><div class="glossary-def">the runner around the model (tools, permissions, sessions, compaction, UI).</div></div>
-  <div class="glossary-item"><div class="glossary-term">Build-verify loop</div><div class="glossary-def">the commands and checks that prove the agent improved the system.</div></div>
+  <div class="glossary-item"><div class="glossary-term">Build-verify loop</div><div class="glossary-def">iterative cycle where the agent generates an output, tests or evaluates it against defined criteria, and refines it until it meets the desired goal</div></div>
   <div class="glossary-item"><div class="glossary-term">Compaction</div><div class="glossary-def">summarizing and pruning old context so the run can continue past the context window.</div></div>
   <div class="glossary-item"><div class="glossary-term">Golden examples</div><div class="glossary-def">a small, human-verified slice that becomes the pattern for a large refactor.</div></div>
   <div class="glossary-item"><div class="glossary-term">Worktree</div><div class="glossary-def">a separate checkout of the same git repo so each agent works in isolation.</div></div>
