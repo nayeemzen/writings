@@ -366,11 +366,16 @@ td:last-child, th:last-child { text-align: right; }
   .chapter {
     break-before: auto;
     page-break-before: auto;
+    break-inside: avoid;
+    page-break-inside: avoid;
     padding-top: 0;
     margin: 2.75rem 0 1.75rem;
     break-after: avoid;
     page-break-after: avoid;
   }
+  .chapter-num { break-after: avoid; page-break-after: avoid; }
+  .chapter h2 { break-before: avoid; page-break-before: avoid; }
+  .chapter-line { break-before: avoid; page-break-before: avoid; }
 
   /* Page margins provide the per-page safe area; remove extra layout padding. */
   .book { padding: 0; }
