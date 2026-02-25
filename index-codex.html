@@ -342,12 +342,19 @@ td:last-child, th:last-child { text-align: right; }
 }
 
 /* Set a page background so Chrome doesn't render white margin boxes in the PDF. */
-@page { margin: 18mm 16mm 18mm; background: #0b0d11; }
+@page { margin: 18mm 16mm 18mm; background: #0c0e12; }
 @page:first { margin: 0; }
 
 @media print {
   .cover { page-break-after: always; }
-  .chapter { page-break-before: always; padding-top: 0; }
+  .chapter {
+    break-before: auto;
+    page-break-before: auto;
+    padding-top: 0;
+    margin: 2.75rem 0 1.75rem;
+    break-after: avoid;
+    page-break-after: avoid;
+  }
 
   /* Page margins provide the per-page safe area; remove extra layout padding. */
   .book { padding: 0; }
